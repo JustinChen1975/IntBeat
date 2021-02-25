@@ -4,11 +4,9 @@ import (
 	"fmt"
 	"github.com/elastic/beats/v7/libbeat/beat"
 	"github.com/elastic/beats/v7/libbeat/common"
-	"github.com/elastic/beats/v7/packetbeat/pb"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
-	"io/ioutil"
 	"log"
 	"os"
 	"time"
@@ -298,60 +296,60 @@ func packetHandler2(packetDataChannel chan []byte,client beat.Client){
 
 }
 
-
-func (bt *lsbeat) listDir1(dirFile string, beatname string) {
-	files, _ := ioutil.ReadDir(dirFile)
-	for _, f := range files {
-		t := f.ModTime()
-		path := filepath.Join(dirFile, f.Name())
-		if t.After(bt.lastIndexTime) {
-
-			evt, pbf := pb.NewBeatEvent(t)
-
-			//pbf.SetSource(&t.src)
-			//pbf.SetDestination(&t.dst)
-			//pbf.Network.Transport = t.transport.String()
-			pbf.Network.Protocol = "dns"
-			//pbf.Error.Message = t.notes
-
-			fields := evt.Fields
-			fields["type"] = beatname
-			fields["modtime"] =common.Time(t)
-
-			//fields["filename"] =f.Name()
-			//fields["path"] =path
-			//fields["directory"] =f.IsDir()
-			//fields["filesize"] =f.Size()
-
-			lsEvent := common.MapStr{}
-			fields["listDirectory"] = lsEvent
-
-			lsEvent["filename"] =f.Name()
-			lsEvent["path"] =path
-			lsEvent["directory"] =f.IsDir()
-			lsEvent["filesize"] =f.Size()
-
-			//fields["status"] = common.
-
-			//event := beat.Event{
-			//	Timestamp: time.Now(),
-			//	Fields: common.MapStr {
-			//		"type":       beatname,
-			//		"modtime":    common.Time(t),
-			//		"filename":   f.Name(),
-			//		"path":       path,
-			//		"directory":  f.IsDir(),
-			//		"filesize":   f.Size(),
-			//	},
-			//}
-
-			bt.client.Publish(evt)
-		}
-		if f.IsDir() {
-			bt.listDir(path, beatname)
-		}
-	}
-}
+//
+//func (bt *lsbeat) listDir1(dirFile string, beatname string) {
+//	files, _ := ioutil.ReadDir(dirFile)
+//	for _, f := range files {
+//		t := f.ModTime()
+//		path := filepath.Join(dirFile, f.Name())
+//		if t.After(bt.lastIndexTime) {
+//
+//			evt, pbf := pb.NewBeatEvent(t)
+//
+//			//pbf.SetSource(&t.src)
+//			//pbf.SetDestination(&t.dst)
+//			//pbf.Network.Transport = t.transport.String()
+//			pbf.Network.Protocol = "dns"
+//			//pbf.Error.Message = t.notes
+//
+//			fields := evt.Fields
+//			fields["type"] = beatname
+//			fields["modtime"] =common.Time(t)
+//
+//			//fields["filename"] =f.Name()
+//			//fields["path"] =path
+//			//fields["directory"] =f.IsDir()
+//			//fields["filesize"] =f.Size()
+//
+//			lsEvent := common.MapStr{}
+//			fields["listDirectory"] = lsEvent
+//
+//			lsEvent["filename"] =f.Name()
+//			lsEvent["path"] =path
+//			lsEvent["directory"] =f.IsDir()
+//			lsEvent["filesize"] =f.Size()
+//
+//			//fields["status"] = common.
+//
+//			//event := beat.Event{
+//			//	Timestamp: time.Now(),
+//			//	Fields: common.MapStr {
+//			//		"type":       beatname,
+//			//		"modtime":    common.Time(t),
+//			//		"filename":   f.Name(),
+//			//		"path":       path,
+//			//		"directory":  f.IsDir(),
+//			//		"filesize":   f.Size(),
+//			//	},
+//			//}
+//
+//			bt.client.Publish(evt)
+//		}
+//		if f.IsDir() {
+//			bt.listDir(path, beatname)
+//		}
+//	}
+//}
 
 func decodeIntFromByte(pkt []byte){
 
