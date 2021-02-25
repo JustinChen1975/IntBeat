@@ -38,9 +38,7 @@ func capture(b *beat.Beat, endSignal  chan  struct{}) {
 		//var err error
 		channels[i] = make(chan []byte,1000)
 		clients[i], _ = b.Publisher.Connect()
-		//go packetHandler(channels[i])
-		//go packetHandler1(channels[i])
-		go packetHandler2(channels[i],clients[i])
+		go packetHandler3(channels[i],clients[i])
 	}
 
 	go  caponline()
@@ -301,6 +299,14 @@ func packetHandler3(packetDataChannel chan []byte,client beat.Client){
 	//parser := gopacket.NewDecodingLayerParser(layers.LayerTypeEthernet, &ethLayer, &ipLayer, &ip6Layer, &tcpLayer,&udpLayer)
 	decoded := []gopacket.LayerType{}
 
+	event := beat.Event{
+		Timestamp: time.Now(),
+		Fields: common.MapStr{
+			"counter": packetCount,
+		},
+	}
+	fields := event.Fields
+
 	for packetData :=range packetDataChannel {
 		//if err := dlp.DecodeLayers(packetData, &decoded); err != nil {
 		//	//fmt.Fprintf(os.Stderr, "Could not decode layers: %v\n", err)
@@ -308,16 +314,12 @@ func packetHandler3(packetDataChannel chan []byte,client beat.Client){
 		////	当前是什么也不做。应该是遇到不能解析的layer的时候会报错。这个应该是很常见吧。
 		//}
 		//不用去管哪些解析不了的layer.我们只提供了3中DecodingLayer。
-		event := beat.Event{
-			Timestamp: time.Now(),
-			Fields: common.MapStr{
-				"counter": packetCount,
-			},
-		}
-		fields := event.Fields
-		udpEvent := common.MapStr{}
-
 		dlp.DecodeLayers(packetData, &decoded)
+
+		udpEvent := common.MapStr{}
+		fields["udpRelated"] = udpEvent
+
+
 
 		for _, layerType := range decoded {
 
@@ -328,7 +330,7 @@ func packetHandler3(packetDataChannel chan []byte,client beat.Client){
 				//fmt.Println("    IP6 ",len(packetData), ip6Layer.SrcIP, ip6Layer.DstIP)
 				fmt.Println("capture UDP")
 
-				fields["udpRelated"] = udpEvent
+
 				udpEvent["dpSrcPort"] =udpLayer.SrcPort
 				udpEvent["udpDstPort"] =udpLayer.DstPort
 				//fmt.Println(packetCount)
