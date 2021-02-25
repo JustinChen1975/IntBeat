@@ -15,7 +15,7 @@ import (
 type intbeat struct {
 	done   chan struct{}
 	config config.Config
-	client beat.Client
+	//client beat.Client
 }
 
 // New creates an instance of intbeat.
@@ -37,35 +37,77 @@ func (bt *intbeat) Run(b *beat.Beat) error {
 	logp.Info("intbeat is running! Hit CTRL-C to stop it.")
 
 	var err error
-	bt.client, err = b.Publisher.Connect()
+	//bt.client, err = b.Publisher.Connect()
+	//client, err := b.Publisher.Connect()
+	//client1, err := b.Publisher.Connect()
 	if err != nil {
 		return err
 	}
 
 	ticker := time.NewTicker(bt.config.Period)
 	counter := 1
+
+	//var  endSignal chan struct{}
+	endSignal := make(chan struct{},2)
+
+	go capture(b,endSignal)
+
 	for {
 		select {
 		case <-bt.done:
+			endSignal <- struct{}{}
 			return nil
 		case <-ticker.C:
 		}
 
-		event := beat.Event{
-			Timestamp: time.Now(),
-			Fields: common.MapStr{
-				"type":    b.Info.Name,
-				"counter": counter,
-			},
-		}
-		bt.client.Publish(event)
-		logp.Info("Event sent")
+		//event := beat.Event{
+		//	Timestamp: time.Now(),
+		//	Fields: common.MapStr{
+		//		"type":    b.Info.Name,
+		//		"counter": counter,
+		//	},
+		//}
+		//client.Publish(event)
+		//client1.Publish(event)
+		//logp.Info("Event sent")
 		counter++
 	}
 }
 
 // Stop stops intbeat.
 func (bt *intbeat) Stop() {
-	bt.client.Close()
+	//bt.client.Close()
 	close(bt.done)
 }
+
+//// Run starts intbeat.
+//func (bt *intbeat) Run1(b *beat.Beat) error {
+//	logp.Info("intbeat is running! Hit CTRL-C to stop it.")
+//
+//	var err error
+//	bt.client[0], err = b.Publisher.Connect()
+//	if err != nil {
+//		return err
+//	}
+//
+//	ticker := time.NewTicker(bt.config.Period)
+//	counter := 1
+//	for {
+//		select {
+//		case <-bt.done:
+//			return nil
+//		case <-ticker.C:
+//		}
+//
+//		event := beat.Event{
+//			Timestamp: time.Now(),
+//			Fields: common.MapStr{
+//				"type":    b.Info.Name,
+//				"counter": counter,
+//			},
+//		}
+//		bt.client.Publish(event)
+//		logp.Info("Event sent")
+//		counter++
+//	}
+//}
