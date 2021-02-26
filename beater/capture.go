@@ -370,6 +370,12 @@ func decodeAndPublish(packetDataChannel chan []byte,client beat.Client){
 
 	for packetData :=range packetDataChannel {
 
+		//0x86DD	网际协议v6 （IPv6，Internet Protocol version 6）
+		if  !bytes.Equal(packetData[54:56],[]byte{0x86, 0xde}) {
+			//说明不是IPv6的数据包
+			continue
+		}
+
 		//开始处理每个数据包的时候，要先清空掉上一个数据包的event里的数据。
 
 
@@ -379,7 +385,7 @@ func decodeAndPublish(packetDataChannel chan []byte,client beat.Client){
 		udpEvent := common.MapStr{}
 		fields["udpRelated"] = udpEvent
 
-		//0x86DD	网际协议v6 （IPv6，Internet Protocol version 6）
+
 
 				//这是直接解码
 				udpEvent["udpSrcPort"] = uint16(packetData[55]) | uint16(packetData[54])<<8
