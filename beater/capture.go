@@ -404,11 +404,12 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 		fields["udpRelated"] = udpEvent
 
 		//这是直接解码
-		udpEvent["udpSrcPort"] = uint16(packetData[55]) | uint16(packetData[54])<<8
+		//udpEvent["udpSrcPort"] = uint16(packetData[55]) | uint16(packetData[54])<<8
+		udpEvent["udpSrcPort"] = binary.BigEndian.Uint16(packetData[54:])
 
 		//下面用现成的函数
 		//udpEvent["udpSrcPort"],_,_ =unpackUint16(packetData,54)
-		udpEvent["udpDstPort"], _, _ = unpackUint16(packetData, 56)
+		udpEvent["udpDstPort"] = binary.BigEndian.Uint16(packetData[56:])
 
 		//udpEvent["udpSrcPort"] = uint32(packetData[54:56])
 		//下面的做法是错误的。原本是1234，会变成4,210
