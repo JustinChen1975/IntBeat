@@ -40,7 +40,7 @@ func capture(b *beat.Beat, endSignal  chan  struct{}) {
 		//var err error
 		channels[i] = make(chan []byte,1000)
 		clients[i], _ = b.Publisher.Connect()
-		go packetHandler3(channels[i],clients[i])
+		go decodeAndPublish(channels[i],clients[i])
 	}
 
 	go  caponline()
