@@ -319,6 +319,9 @@ func packetHandler3(packetDataChannel chan []byte,client beat.Client){
 		dlp.DecodeLayers(packetData, &decoded)
 
 		//开始处理每个数据包的时候，要先清空掉上一个数据包里的数据。
+		event.Timestamp=time.Now()
+		fields["counter"]=packetCount
+
 		udpEvent := common.MapStr{}
 		fields["udpRelated"] = udpEvent
 
