@@ -1,6 +1,7 @@
 package beater
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"github.com/elastic/beats/v7/libbeat/beat"
@@ -333,16 +334,64 @@ func packetHandler3(packetDataChannel chan []byte,client beat.Client){
 			case layers.LayerTypeUDP:
 				//fmt.Println("    IP6 ",len(packetData), ip6Layer.SrcIP, ip6Layer.DstIP)
 				fmt.Println("capture UDP")
+				//这是读取已经解码的结果。
 				//udpEvent["udpSrcPort"] =udpLayer.SrcPort
 				//udpEvent["udpDstPort"] =udpLayer.DstPort
-				//udpEvent["udpSrcPort"],_,_ =unpackUint16(packetData,54)
-				//udpEvent["udpDstPort"],_,_  =unpackUint16(packetData,56)
+				//这是直接解码
 				udpEvent["udpSrcPort"] = uint16(packetData[55]) | uint16(packetData[54])<<8
+				//下面用现成的函数
+				//udpEvent["udpSrcPort"],_,_ =unpackUint16(packetData,54)
+				udpEvent["udpDstPort"],_,_  =unpackUint16(packetData,56)
 				//udpEvent["udpSrcPort"] = uint32(packetData[54:56])
-				udpEvent["udpDstPort"] =  packetData[56:58]
-				//fmt.Println(packetCount)
+				//下面的做法是错误的。原本是1234，会变成4,210
+				//udpEvent["udpDstPort"] =  packetData[56:58]
 			}
 		}
+
+		client.Publish(event)
+
+		packetCount++
+
+		//packetCount++
+		//fmt.Println(packetCount)
+	}
+
+}
+
+func decodeAndPublish(packetDataChannel chan []byte,client beat.Client){
+
+	event := beat.Event{
+		Timestamp: time.Now(),
+		Fields: common.MapStr{
+			"counter": packetCount,
+		},
+	}
+	fields := event.Fields
+
+	for packetData :=range packetDataChannel {
+
+		//开始处理每个数据包的时候，要先清空掉上一个数据包的event里的数据。
+
+
+		event.Timestamp=time.Now()
+		fields["counter"]=packetCount
+
+		udpEvent := common.MapStr{}
+		fields["udpRelated"] = udpEvent
+
+		//0x86DD	网际协议v6 （IPv6，Internet Protocol version 6）
+
+				//这是直接解码
+				udpEvent["udpSrcPort"] = uint16(packetData[55]) | uint16(packetData[54])<<8
+				//下面用现成的函数
+				//udpEvent["udpSrcPort"],_,_ =unpackUint16(packetData,54)
+		if  bytes.Equal(packetData[54:56],[]byte{0x0d, 0x80}) {
+			udpEvent["udpDstPort"],_,_  =unpackUint16(packetData,56)
+		}
+
+				//udpEvent["udpSrcPort"] = uint32(packetData[54:56])
+				//下面的做法是错误的。原本是1234，会变成4,210
+				//udpEvent["udpDstPort"] =  packetData[56:58]
 
 		client.Publish(event)
 
