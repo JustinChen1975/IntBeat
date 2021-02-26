@@ -395,7 +395,7 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 		fields["telemetryGroupHeader"] = tghEvent
 
 		tghEvent["version"] = packetData[62]>>4
-		tghEvent["hw_id"] =(packetData[62]<<2 & 0x3C) & (packetData[63]>>6 & 0x03)
+		tghEvent["hw_id"] = ((uint16(packetData[63]) | uint16(packetData[62])<<8)>>6 ) & 0x003F
 
 
 		udpEvent := common.MapStr{}
@@ -403,6 +403,7 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 
 		//这是直接解码
 		udpEvent["udpSrcPort"] = uint16(packetData[55]) | uint16(packetData[54])<<8
+
 		//下面用现成的函数
 		//udpEvent["udpSrcPort"],_,_ =unpackUint16(packetData,54)
 		udpEvent["udpDstPort"], _, _ = unpackUint16(packetData, 56)
