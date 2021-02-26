@@ -464,12 +464,12 @@ func (e *Error) Error() string {
 	return "dns: " + e.err
 }
 
-//func unpackUint16(msg []byte, off int) (i uint16, off1 int, err error) {
-//	if off+2 > len(msg) {
-//		return 0, len(msg), &Error{err: "overflow unpacking uint16"}
-//	}
-//	return binary.BigEndian.Uint16(msg[off:]), off + 2, nil
-//}
+func unpackUint16(msg []byte, off int) (i uint16, off1 int, err error) {
+	if off+2 > len(msg) {
+		return 0, len(msg), &Error{err: "overflow unpacking uint16"}
+	}
+	return binary.BigEndian.Uint16(msg[off:]), off + 2, nil
+}
 
 //func unpackUint32(msg []byte, off int) (i uint32, off1 int, err error) {
 //	if off+4 > len(msg) {
