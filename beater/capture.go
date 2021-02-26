@@ -395,7 +395,7 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 		fields["telemetryGroupHeader"] = tghEvent
 
 		tghEvent["version"] = packetData[62]>>4
-
+		tghEvent["hw_id"] =(packetData[62]<<4 & 0x3C) & (packetData[63]>>6 & 0x03)
 
 
 		udpEvent := common.MapStr{}
