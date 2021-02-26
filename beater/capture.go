@@ -436,19 +436,19 @@ const (
 )
 
 // setHdr set the header in the dns using the binary data in dh.
-func (dns *Msg) setHdr(dh Header) {
-	dns.Id = dh.Id
-	dns.Response = dh.Bits&_QR != 0
-	dns.Opcode = int(dh.Bits>>11) & 0xF
-	dns.Authoritative = dh.Bits&_AA != 0
-	dns.Truncated = dh.Bits&_TC != 0
-	dns.RecursionDesired = dh.Bits&_RD != 0
-	dns.RecursionAvailable = dh.Bits&_RA != 0
-	dns.Zero = dh.Bits&_Z != 0 // _Z covers the zero bit, which should be zero; not sure why we set it to the opposite.
-	dns.AuthenticatedData = dh.Bits&_AD != 0
-	dns.CheckingDisabled = dh.Bits&_CD != 0
-	dns.Rcode = int(dh.Bits & 0xF)
-}
+//func (dns *Msg) setHdr(dh Header) {
+//	dns.Id = dh.Id
+//	dns.Response = dh.Bits&_QR != 0
+//	dns.Opcode = int(dh.Bits>>11) & 0xF
+//	dns.Authoritative = dh.Bits&_AA != 0
+//	dns.Truncated = dh.Bits&_TC != 0
+//	dns.RecursionDesired = dh.Bits&_RD != 0
+//	dns.RecursionAvailable = dh.Bits&_RA != 0
+//	dns.Zero = dh.Bits&_Z != 0 // _Z covers the zero bit, which should be zero; not sure why we set it to the opposite.
+//	dns.AuthenticatedData = dh.Bits&_AD != 0
+//	dns.CheckingDisabled = dh.Bits&_CD != 0
+//	dns.Rcode = int(dh.Bits & 0xF)
+//}
 
 // Error represents a DNS error.
 type Error struct{ err string }
