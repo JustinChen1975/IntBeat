@@ -337,7 +337,7 @@ func packetHandler3(packetDataChannel chan []byte,client beat.Client){
 				//udpEvent["udpDstPort"] =udpLayer.DstPort
 				//udpEvent["udpSrcPort"],_,_ =unpackUint16(packetData,54)
 				//udpEvent["udpDstPort"],_,_  =unpackUint16(packetData,56)
-				udpEvent["udpSrcPort"] = uint16(packetData[56]) | uint16(packetData[55])<<8
+				udpEvent["udpSrcPort"] = uint16(packetData[55]) | uint16(packetData[54])<<8
 				//udpEvent["udpSrcPort"] = uint32(packetData[54:56])
 				udpEvent["udpDstPort"] =  packetData[56:58]
 				//fmt.Println(packetCount)
