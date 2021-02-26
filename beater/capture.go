@@ -1,6 +1,7 @@
 package beater
 
 import (
+	"encoding/binary"
 	"fmt"
 	"github.com/elastic/beats/v7/libbeat/beat"
 	"github.com/elastic/beats/v7/libbeat/common"
@@ -307,19 +308,19 @@ func packetHandler3(packetDataChannel chan []byte,client beat.Client){
 	}
 	fields := event.Fields
 
+
 	for packetData :=range packetDataChannel {
 		//if err := dlp.DecodeLayers(packetData, &decoded); err != nil {
 		//	//fmt.Fprintf(os.Stderr, "Could not decode layers: %v\n", err)
 		//	//fmt.Println(len(packetData))
 		////	当前是什么也不做。应该是遇到不能解析的layer的时候会报错。这个应该是很常见吧。
 		//}
-		//不用去管哪些解析不了的layer.我们只提供了3中DecodingLayer。
+		//不用去管哪些解析不了的layer.因为我们只提供了3种DecodingLayer。
 		dlp.DecodeLayers(packetData, &decoded)
 
+		//开始处理每个数据包的时候，要先清空掉上一个数据包里的数据。
 		udpEvent := common.MapStr{}
 		fields["udpRelated"] = udpEvent
-
-
 
 		for _, layerType := range decoded {
 
@@ -329,15 +330,16 @@ func packetHandler3(packetDataChannel chan []byte,client beat.Client){
 			case layers.LayerTypeUDP:
 				//fmt.Println("    IP6 ",len(packetData), ip6Layer.SrcIP, ip6Layer.DstIP)
 				fmt.Println("capture UDP")
-
-
-				udpEvent["dpSrcPort"] =udpLayer.SrcPort
-				udpEvent["udpDstPort"] =udpLayer.DstPort
+				//udpEvent["udpSrcPort"] =udpLayer.SrcPort
+				//udpEvent["udpDstPort"] =udpLayer.DstPort
+				udpEvent["udpSrcPort"],_,_ =unpackUint16(packetData,54)
+				udpEvent["udpDstPort"],_,_  =unpackUint16(packetData,56)
 				//fmt.Println(packetCount)
 			}
 		}
 
 		client.Publish(event)
+
 		packetCount++
 
 		//packetCount++
@@ -346,64 +348,27 @@ func packetHandler3(packetDataChannel chan []byte,client beat.Client){
 
 }
 
-//
-//func (bt *lsbeat) listDir1(dirFile string, beatname string) {
-//	files, _ := ioutil.ReadDir(dirFile)
-//	for _, f := range files {
-//		t := f.ModTime()
-//		path := filepath.Join(dirFile, f.Name())
-//		if t.After(bt.lastIndexTime) {
-//
-//			evt, pbf := pb.NewBeatEvent(t)
-//
-//			//pbf.SetSource(&t.src)
-//			//pbf.SetDestination(&t.dst)
-//			//pbf.Network.Transport = t.transport.String()
-//			pbf.Network.Protocol = "dns"
-//			//pbf.Error.Message = t.notes
-//
-//			fields := evt.Fields
-//			fields["type"] = beatname
-//			fields["modtime"] =common.Time(t)
-//
-//			//fields["filename"] =f.Name()
-//			//fields["path"] =path
-//			//fields["directory"] =f.IsDir()
-//			//fields["filesize"] =f.Size()
-//
-//			lsEvent := common.MapStr{}
-//			fields["listDirectory"] = lsEvent
-//
-//			lsEvent["filename"] =f.Name()
-//			lsEvent["path"] =path
-//			lsEvent["directory"] =f.IsDir()
-//			lsEvent["filesize"] =f.Size()
-//
-//			//fields["status"] = common.
-//
-//			//event := beat.Event{
-//			//	Timestamp: time.Now(),
-//			//	Fields: common.MapStr {
-//			//		"type":       beatname,
-//			//		"modtime":    common.Time(t),
-//			//		"filename":   f.Name(),
-//			//		"path":       path,
-//			//		"directory":  f.IsDir(),
-//			//		"filesize":   f.Size(),
-//			//	},
-//			//}
-//
-//			bt.client.Publish(evt)
-//		}
-//		if f.IsDir() {
-//			bt.listDir(path, beatname)
-//		}
-//	}
-//}
+// Error represents a DNS error.
+type Error struct{ err string }
 
-func decodeIntFromByte(pkt []byte){
-
+func (e *Error) Error() string {
+	if e == nil {
+		return "dns: <nil>"
+	}
+	return "dns: " + e.err
 }
+
+
+func unpackUint16(msg []byte, off int) (i uint16, off1 int, err error) {
+	if off+2 > len(msg) {
+		return 0, len(msg), &Error{err: "overflow unpacking uint16"}
+	}
+	return binary.BigEndian.Uint16(msg[off:]), off + 2, nil
+}
+
+//func decodeIntFromByte(pkt []byte){
+//
+//}
 
 
 
