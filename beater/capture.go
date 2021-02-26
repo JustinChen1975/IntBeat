@@ -335,8 +335,10 @@ func packetHandler3(packetDataChannel chan []byte,client beat.Client){
 				fmt.Println("capture UDP")
 				//udpEvent["udpSrcPort"] =udpLayer.SrcPort
 				//udpEvent["udpDstPort"] =udpLayer.DstPort
-				udpEvent["udpSrcPort"],_,_ =unpackUint16(packetData,54)
-				udpEvent["udpDstPort"],_,_  =unpackUint16(packetData,56)
+				//udpEvent["udpSrcPort"],_,_ =unpackUint16(packetData,54)
+				//udpEvent["udpDstPort"],_,_  =unpackUint16(packetData,56)
+				udpEvent["udpSrcPort"] = packetData[54:56]
+				udpEvent["udpDstPort"] =  packetData[56:58]
 				//fmt.Println(packetCount)
 			}
 		}
@@ -360,7 +362,6 @@ func (e *Error) Error() string {
 	}
 	return "dns: " + e.err
 }
-
 
 func unpackUint16(msg []byte, off int) (i uint16, off1 int, err error) {
 	if off+2 > len(msg) {
