@@ -375,14 +375,28 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 			continue
 		}
 		if  !bytes.Equal(packetData[54:58],[]byte{0x0d,0x80,0x04,0xd2})  {
-			//UDP的源端口是3456，目的端口是1234的包才是INT over IPv6上的包
+			//UDP的源端口是3456且目的端口是1234的包才是INT over IPv6上的包
 			continue
 		}
 
-		//开始处理每个数据包的时候，要先清空掉上一个数据包的event里的数据。
-
+		//开始处理每个数据包的时候，要先清空掉上与一个数据包相关的event里的数据。
 		event.Timestamp = time.Now()
 		fields["counter"] = packetCount
+
+		//telemetry group header的解析
+		// 0                   1                   2                   3
+		// 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+		//+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+		//| Ver   | hw_id     |                           Sequence Number |
+		//+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+		//|                         Node ID                               |
+		//+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+		tghEvent := common.MapStr{}
+		fields["telemetryGroupHeader"] = tghEvent
+
+		tghEvent["version"] = packetData[62]>>4
+
+
 
 		udpEvent := common.MapStr{}
 		fields["udpRelated"] = udpEvent
@@ -405,6 +419,35 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 		//fmt.Println(packetCount)
 	}
 
+}
+
+const (
+	headerSize = 12
+
+	// Header.Bits
+	_QR = 1 << 15 // query/response (response=1)
+	_AA = 1 << 10 // authoritative
+	_TC = 1 << 9  // truncated
+	_RD = 1 << 8  // recursion desired
+	_RA = 1 << 7  // recursion available
+	_Z  = 1 << 6  // Z
+	_AD = 1 << 5  // authticated data
+	_CD = 1 << 4  // checking disabled
+)
+
+// setHdr set the header in the dns using the binary data in dh.
+func (dns *Msg) setHdr(dh Header) {
+	dns.Id = dh.Id
+	dns.Response = dh.Bits&_QR != 0
+	dns.Opcode = int(dh.Bits>>11) & 0xF
+	dns.Authoritative = dh.Bits&_AA != 0
+	dns.Truncated = dh.Bits&_TC != 0
+	dns.RecursionDesired = dh.Bits&_RD != 0
+	dns.RecursionAvailable = dh.Bits&_RA != 0
+	dns.Zero = dh.Bits&_Z != 0 // _Z covers the zero bit, which should be zero; not sure why we set it to the opposite.
+	dns.AuthenticatedData = dh.Bits&_AD != 0
+	dns.CheckingDisabled = dh.Bits&_CD != 0
+	dns.Rcode = int(dh.Bits & 0xF)
 }
 
 // Error represents a DNS error.
