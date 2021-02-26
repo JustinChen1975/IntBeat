@@ -17,33 +17,33 @@ import (
 
 var (
 	//device       string = "\\Device\\NPF_{F0C8EAAE-E1FB-45F2-B0A1-6236EEADE5EE}"
-	device       string = "veth1"
+	device string = "veth1"
 	//device       string = "enp2s0f0"
-	snapshot_len int32  = 1024
-	promiscuous  bool   = false
+	snapshot_len int32 = 1024
+	promiscuous  bool  = false
 	err          error
 	//timeout      time.Duration = 1 * time.Second
-	timeout      time.Duration = 10 * time.Microsecond
+	timeout time.Duration = 10 * time.Microsecond
 	//timeout      time.Duration = 10 * time.Nanosecond
-	handle       *pcap.Handle
+	handle      *pcap.Handle
 	packetCount int = 0
 )
 
-const channleNum  = 8
+const channleNum = 8
 
-var  channels [channleNum] chan []byte
-var  clients [channleNum] beat.Client
+var channels [channleNum]chan []byte
+var clients [channleNum]beat.Client
 
-func capture(b *beat.Beat, endSignal  chan  struct{}) {
+func capture(b *beat.Beat, endSignal chan struct{}) {
 
 	for i := 0; i < channleNum; i++ {
 		//var err error
-		channels[i] = make(chan []byte,1000)
+		channels[i] = make(chan []byte, 1000)
 		clients[i], _ = b.Publisher.Connect()
-		go decodeAndPublish(channels[i],clients[i])
+		go decodeAndPublish(channels[i], clients[i])
 	}
 
-	go  caponline()
+	go caponline()
 
 	for {
 		select {
@@ -56,8 +56,7 @@ func capture(b *beat.Beat, endSignal  chan  struct{}) {
 	}
 }
 
-
-func caponline()  {
+func caponline() {
 
 	// Open device
 	handle, err = pcap.OpenLive(device, snapshot_len, promiscuous, timeout)
@@ -66,11 +65,11 @@ func caponline()  {
 	}
 	defer handle.Close()
 
-	i :=0
-	for  {
+	i := 0
+	for {
 		//packetData,ci,err := handle.ReadPacketData()
 		//packetData,ci,_ := handle.ReadPacketData()
-		packetData,ci,_ := handle.ZeroCopyReadPacketData()
+		packetData, ci, _ := handle.ZeroCopyReadPacketData()
 		if err != nil {
 			continue
 		}
@@ -88,13 +87,13 @@ func caponline()  {
 
 		// 14 eth, 40 IPv6 header, 8 UDP
 		//起码要大于：  14+40+8+8+4+40+2+2+12=130字节
-		if ci.CaptureLength >130   {
+		if ci.CaptureLength > 130 {
 			pdata := make([]byte, ci.CaptureLength)
-			copy(pdata,packetData)
+			copy(pdata, packetData)
 			channels[i] <- pdata
 			i++
-			if i==channleNum  {
-				i=0
+			if i == channleNum {
+				i = 0
 			}
 		}
 
@@ -106,35 +105,35 @@ func caponline()  {
 
 }
 
-func packetHandler(packetDataChannel chan []byte){
+func packetHandler(packetDataChannel chan []byte) {
 
 	var (
 		ethLayer layers.Ethernet
 		ipLayer  layers.IPv4
-		ip6Layer  layers.IPv6
+		ip6Layer layers.IPv6
 		tcpLayer layers.TCP
 		udpLayer layers.UDP
 	)
 	//Unfortunately, not all layers can be used by DecodingLayerParser... only those implementing the DecodingLayer interface are usable.
-	parser := gopacket.NewDecodingLayerParser(layers.LayerTypeEthernet, &ethLayer, &ipLayer, &ip6Layer, &tcpLayer,&udpLayer)
+	parser := gopacket.NewDecodingLayerParser(layers.LayerTypeEthernet, &ethLayer, &ipLayer, &ip6Layer, &tcpLayer, &udpLayer)
 	decoded := []gopacket.LayerType{}
 
-	for packetData :=range packetDataChannel {
+	for packetData := range packetDataChannel {
 		if err := parser.DecodeLayers(packetData, &decoded); err != nil {
 			fmt.Fprintf(os.Stderr, "Could not decode layers: %v\n", err)
 		}
 		for _, layerType := range decoded {
 			switch layerType {
 			case layers.LayerTypeIPv6:
-				fmt.Println("    IP6 ",len(packetData), ip6Layer.SrcIP, ip6Layer.DstIP)
+				fmt.Println("    IP6 ", len(packetData), ip6Layer.SrcIP, ip6Layer.DstIP)
 			case layers.LayerTypeIPv4:
 				//fmt.Println("    IP4 ", len(*packetData),  ipLayer.SrcIP, ipLayer.DstIP)
 				//fmt.Println("    IP4 ", len(packetData))
 				//fmt.Printf("%p\n",&packetData)
 				//rawBytes := []byte{10, 20, 30}
-				packetData=append(packetData, byte(10))
+				packetData = append(packetData, byte(10))
 				fmt.Println("    IP4 ", len(packetData))
-				fmt.Printf("%p\n",&packetData)
+				fmt.Printf("%p\n", &packetData)
 			}
 		}
 
@@ -144,12 +143,12 @@ func packetHandler(packetDataChannel chan []byte){
 
 }
 
-func packetHandler1(packetDataChannel chan []byte){
+func packetHandler1(packetDataChannel chan []byte) {
 
 	var (
 		ethLayer layers.Ethernet
 		ipLayer  layers.IPv4
-		ip6Layer  layers.IPv6
+		ip6Layer layers.IPv6
 		//tcpLayer layers.TCP
 		udpLayer layers.UDP
 	)
@@ -168,7 +167,7 @@ func packetHandler1(packetDataChannel chan []byte){
 	//parser := gopacket.NewDecodingLayerParser(layers.LayerTypeEthernet, &ethLayer, &ipLayer, &ip6Layer, &tcpLayer,&udpLayer)
 	decoded := []gopacket.LayerType{}
 
-	for packetData :=range packetDataChannel {
+	for packetData := range packetDataChannel {
 		if err := dlp.DecodeLayers(packetData, &decoded); err != nil {
 			fmt.Fprintf(os.Stderr, "Could not decode layers: %v\n", err)
 			fmt.Println(len(packetData))
@@ -176,11 +175,11 @@ func packetHandler1(packetDataChannel chan []byte){
 		for _, layerType := range decoded {
 			switch layerType {
 			case layers.LayerTypeIPv6:
-				fmt.Println("    IP6 ",len(packetData), ip6Layer.SrcIP, ip6Layer.DstIP)
+				fmt.Println("    IP6 ", len(packetData), ip6Layer.SrcIP, ip6Layer.DstIP)
 			case layers.LayerTypeUDP:
 				//fmt.Println("    IP6 ",len(packetData), ip6Layer.SrcIP, ip6Layer.DstIP)
 				fmt.Println("capture UDP")
-				fmt.Println("    IP4 ", len(packetData),  udpLayer.SrcPort,udpLayer.DstPort)
+				fmt.Println("    IP4 ", len(packetData), udpLayer.SrcPort, udpLayer.DstPort)
 				packetCount++
 				fmt.Println(packetCount)
 			}
@@ -192,14 +191,13 @@ func packetHandler1(packetDataChannel chan []byte){
 
 }
 
-
-func packetHandler2(packetDataChannel chan []byte,client beat.Client){
+func packetHandler2(packetDataChannel chan []byte, client beat.Client) {
 	//defer client.Close()
 
 	var (
 		ethLayer layers.Ethernet
 		ipLayer  layers.IPv4
-		ip6Layer  layers.IPv6
+		ip6Layer layers.IPv6
 		//tcpLayer layers.TCP
 		udpLayer layers.UDP
 	)
@@ -218,7 +216,7 @@ func packetHandler2(packetDataChannel chan []byte,client beat.Client){
 	//parser := gopacket.NewDecodingLayerParser(layers.LayerTypeEthernet, &ethLayer, &ipLayer, &ip6Layer, &tcpLayer,&udpLayer)
 	decoded := []gopacket.LayerType{}
 
-	for packetData :=range packetDataChannel {
+	for packetData := range packetDataChannel {
 		if err := dlp.DecodeLayers(packetData, &decoded); err != nil {
 			fmt.Fprintf(os.Stderr, "Could not decode layers: %v\n", err)
 			fmt.Println(len(packetData))
@@ -226,7 +224,7 @@ func packetHandler2(packetDataChannel chan []byte,client beat.Client){
 		for _, layerType := range decoded {
 			switch layerType {
 			case layers.LayerTypeIPv6:
-				fmt.Println("    IP6 ",len(packetData), ip6Layer.SrcIP, ip6Layer.DstIP)
+				fmt.Println("    IP6 ", len(packetData), ip6Layer.SrcIP, ip6Layer.DstIP)
 				//case layers.LayerTypeIPv4:
 				//	fmt.Println("    IP4 ", len(packetData),  ipLayer.SrcIP, ipLayer.DstIP)
 				//	//fmt.Println("    IP4 ", len(packetData))
@@ -261,8 +259,8 @@ func packetHandler2(packetDataChannel chan []byte,client beat.Client){
 				udpEvent := common.MapStr{}
 				fields["udpRelated"] = udpEvent
 
-				udpEvent["dpSrcPort"] =udpLayer.SrcPort
-				udpEvent["udpDstPort"] =udpLayer.DstPort
+				udpEvent["dpSrcPort"] = udpLayer.SrcPort
+				udpEvent["udpDstPort"] = udpLayer.DstPort
 
 				client.Publish(event)
 				packetCount++
@@ -276,13 +274,12 @@ func packetHandler2(packetDataChannel chan []byte,client beat.Client){
 
 }
 
-
-func packetHandler3(packetDataChannel chan []byte,client beat.Client){
+func packetHandler3(packetDataChannel chan []byte, client beat.Client) {
 
 	var (
 		ethLayer layers.Ethernet
 		//ipLayer  layers.IPv4
-		ip6Layer  layers.IPv6
+		ip6Layer layers.IPv6
 		//tcpLayer layers.TCP
 		udpLayer layers.UDP
 	)
@@ -309,8 +306,7 @@ func packetHandler3(packetDataChannel chan []byte,client beat.Client){
 	}
 	fields := event.Fields
 
-
-	for packetData :=range packetDataChannel {
+	for packetData := range packetDataChannel {
 		//if err := dlp.DecodeLayers(packetData, &decoded); err != nil {
 		//	//fmt.Fprintf(os.Stderr, "Could not decode layers: %v\n", err)
 		//	//fmt.Println(len(packetData))
@@ -320,8 +316,8 @@ func packetHandler3(packetDataChannel chan []byte,client beat.Client){
 		dlp.DecodeLayers(packetData, &decoded)
 
 		//开始处理每个数据包的时候，要先清空掉上一个数据包里的数据。
-		event.Timestamp=time.Now()
-		fields["counter"]=packetCount
+		event.Timestamp = time.Now()
+		fields["counter"] = packetCount
 
 		udpEvent := common.MapStr{}
 		fields["udpRelated"] = udpEvent
@@ -330,7 +326,7 @@ func packetHandler3(packetDataChannel chan []byte,client beat.Client){
 
 			switch layerType {
 			case layers.LayerTypeIPv6:
-				fmt.Println("    IP6 ",len(packetData), ip6Layer.SrcIP, ip6Layer.DstIP)
+				fmt.Println("    IP6 ", len(packetData), ip6Layer.SrcIP, ip6Layer.DstIP)
 			case layers.LayerTypeUDP:
 				//fmt.Println("    IP6 ",len(packetData), ip6Layer.SrcIP, ip6Layer.DstIP)
 				fmt.Println("capture UDP")
@@ -341,7 +337,7 @@ func packetHandler3(packetDataChannel chan []byte,client beat.Client){
 				udpEvent["udpSrcPort"] = uint16(packetData[55]) | uint16(packetData[54])<<8
 				//下面用现成的函数
 				//udpEvent["udpSrcPort"],_,_ =unpackUint16(packetData,54)
-				udpEvent["udpDstPort"],_,_  =unpackUint16(packetData,56)
+				udpEvent["udpDstPort"], _, _ = unpackUint16(packetData, 56)
 				//udpEvent["udpSrcPort"] = uint32(packetData[54:56])
 				//下面的做法是错误的。原本是1234，会变成4,210
 				//udpEvent["udpDstPort"] =  packetData[56:58]
@@ -358,7 +354,7 @@ func packetHandler3(packetDataChannel chan []byte,client beat.Client){
 
 }
 
-func decodeAndPublish(packetDataChannel chan []byte,client beat.Client){
+func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 
 	event := beat.Event{
 		Timestamp: time.Now(),
@@ -368,36 +364,38 @@ func decodeAndPublish(packetDataChannel chan []byte,client beat.Client){
 	}
 	fields := event.Fields
 
-	for packetData :=range packetDataChannel {
+	for packetData := range packetDataChannel {
 
-		//0x86DD	网际协议v6 （IPv6，Internet Protocol version 6）
-		if  !bytes.Equal(packetData[54:56],[]byte{0x86, 0xde}) {
-			//说明不是IPv6的数据包
+		if !bytes.Equal(packetData[12:14], []byte{0x86, 0xdd}) {
+			//说明不是IPv6的数据包。0x86DD是网际协议v6 （IPv6，Internet Protocol version 6）
+			continue
+		}
+		if int(packetData[20]) != 17 {
+			//next header=17是UDP包。不是的话，说明不是UDP的数据包
+			continue
+		}
+		if  !bytes.Equal(packetData[54:58],[]byte{0x0d,0x80,0x04,0xd2})  {
+			//UDP的源端口是3456，目的端口是1234的包才是INT over IPv6上的包
 			continue
 		}
 
 		//开始处理每个数据包的时候，要先清空掉上一个数据包的event里的数据。
 
-
-		event.Timestamp=time.Now()
-		fields["counter"]=packetCount
+		event.Timestamp = time.Now()
+		fields["counter"] = packetCount
 
 		udpEvent := common.MapStr{}
 		fields["udpRelated"] = udpEvent
 
+		//这是直接解码
+		udpEvent["udpSrcPort"] = uint16(packetData[55]) | uint16(packetData[54])<<8
+		//下面用现成的函数
+		//udpEvent["udpSrcPort"],_,_ =unpackUint16(packetData,54)
+		udpEvent["udpDstPort"], _, _ = unpackUint16(packetData, 56)
 
-
-				//这是直接解码
-				udpEvent["udpSrcPort"] = uint16(packetData[55]) | uint16(packetData[54])<<8
-				//下面用现成的函数
-				//udpEvent["udpSrcPort"],_,_ =unpackUint16(packetData,54)
-		if  bytes.Equal(packetData[54:56],[]byte{0x0d, 0x80}) {
-			udpEvent["udpDstPort"],_,_  =unpackUint16(packetData,56)
-		}
-
-				//udpEvent["udpSrcPort"] = uint32(packetData[54:56])
-				//下面的做法是错误的。原本是1234，会变成4,210
-				//udpEvent["udpDstPort"] =  packetData[56:58]
+		//udpEvent["udpSrcPort"] = uint32(packetData[54:56])
+		//下面的做法是错误的。原本是1234，会变成4,210
+		//udpEvent["udpDstPort"] =  packetData[56:58]
 
 		client.Publish(event)
 
@@ -429,8 +427,3 @@ func unpackUint16(msg []byte, off int) (i uint16, off1 int, err error) {
 //func decodeIntFromByte(pkt []byte){
 //
 //}
-
-
-
-
-
