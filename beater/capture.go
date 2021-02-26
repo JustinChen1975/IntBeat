@@ -395,8 +395,9 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 		fields["telemetryGroupHeader"] = tghEvent
 
 		tghEvent["version"] = packetData[62]>>4
-		tghEvent["hw_id"] = ((uint16(packetData[63]) | uint16(packetData[62])<<8)>>6 ) & 0x003F
-
+		//tghEvent["hw_id"] = ((uint16(packetData[63]) | uint16(packetData[62])<<8)>>6 ) & 0x003F
+		tghEvent["hw_id"] = (binary.BigEndian.Uint16(packetData[62:])>>6 ) & 0x003F
+		tghEvent["sequenceNumber"] = (binary.BigEndian.Uint32(packetData[62:])) & 0x003FFFFF
 
 		udpEvent := common.MapStr{}
 		fields["udpRelated"] = udpEvent
@@ -467,6 +468,13 @@ func unpackUint16(msg []byte, off int) (i uint16, off1 int, err error) {
 	}
 	return binary.BigEndian.Uint16(msg[off:]), off + 2, nil
 }
+
+//func unpackUint32(msg []byte, off int) (i uint32, off1 int, err error) {
+//	if off+4 > len(msg) {
+//		return 0, len(msg), &Error{err: "overflow unpacking uint32"}
+//	}
+//	return binary.BigEndian.Uint32(msg[off:]), off + 4, nil
+//}
 
 //func decodeIntFromByte(pkt []byte){
 //
