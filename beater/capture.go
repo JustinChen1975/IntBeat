@@ -11,6 +11,7 @@ import (
 	"github.com/google/gopacket/pcap"
 	"log"
 	"os"
+	"strconv"
 	"time"
 	//"unicode"
 )
@@ -426,20 +427,18 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 			continue
 		}
 
-
 		fields["individualReportHeader"] = common.MapStr{
-			"RepType": repType,
+			//"RepType": repType,
+			"RepType": RepTypeToString(repType),
 			"InType": packetData[70] & 0x0F,
-			"ReportLength": reportLength,
-			"MDLength": mdLength,
+			//"ReportLength": reportLength,
+			//"MDLength": mdLength,
 		}
 
 		//D=0， Dropped bit
 		//Q=0, Congested Queue Association bit
 		//F=1, Tracked Flow Association bit
 		//I=0, Intermediate Report bit
-
-
 
 
 		udpEvent := common.MapStr{}
@@ -467,12 +466,22 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 
 }
 
-func NodeToString(opCode uint32) string {
-	//陈晓筹：这里其实是根据代码查询实际含义
-	s, exists := NodeForString[opCode]
+const (
+	InnerOnly_RepType = iota     //InnerOnly_RepType=0
+	INT_RepType
+	IOAM_RepType
+)
+
+var RepTypeForString = map[uint8]string{
+	InnerOnly_RepType: "Inner Only",
+	INT_RepType: "INT",
+	IOAM_RepType: "IOAM",
+}
+
+func RepTypeToString(repType uint8) string {
+	s, exists := RepTypeForString[repType]
 	if !exists {
-		//return strconv.Itoa(uint32(opCode))
-		//return  opCode
+		return strconv.FormatUint(uint64(repType),10)
 	}
 	return s
 }
@@ -485,6 +494,15 @@ var NodeForString = map[uint32]string{
 	25174439: "R5",
 	25174440: "R6",
 }
+
+func NodeToString(opCode uint32) string {
+	s, exists := NodeForString[opCode]
+	if !exists {
+		return strconv.FormatUint(uint64(opCode),10)
+	}
+	return s
+}
+
 
 const (
 	headerSize = 12
