@@ -366,6 +366,7 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 
 	for packetData := range packetDataChannel {
 
+		//下面的这些12，14，20等后面应该改动为offset比较合理，程序能具有更强的通用性。
 		if !bytes.Equal(packetData[12:14], []byte{0x86, 0xdd}) {
 			//说明不是IPv6的数据包。0x86DD是网际协议v6 （IPv6，Internet Protocol version 6）
 			continue
@@ -383,7 +384,7 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 		event.Timestamp = time.Now()
 		fields["counter"] = packetCount
 
-		//telemetry group header的解析
+		//开始对telemetry group header的解析
 		// 0                   1                   2                   3
 		// 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 		//+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -391,14 +392,34 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 		//+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 		//|                         Node ID                               |
 		//+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-		tghEvent := common.MapStr{}
-		fields["telemetryGroupHeader"] = tghEvent
+		//tghEvent := common.MapStr{}
+		//fields["telemetryGroupHeader"] = tghEvent
+		//
+		//tghEvent["version"] = packetData[62]>>4
+		////tghEvent["hw_id"] = ((uint16(packetData[63]) | uint16(packetData[62])<<8)>>6 ) & 0x003F
+		//tghEvent["hw_id"] = (binary.BigEndian.Uint16(packetData[62:])>>6 ) & 0x003F
+		//tghEvent["sequenceNumber"] = (binary.BigEndian.Uint32(packetData[62:])) & 0x003FFFFF
+		//tghEvent["nodeId"] = binary.BigEndian.Uint32(packetData[66:])
 
-		tghEvent["version"] = packetData[62]>>4
-		//tghEvent["hw_id"] = ((uint16(packetData[63]) | uint16(packetData[62])<<8)>>6 ) & 0x003F
-		tghEvent["hw_id"] = (binary.BigEndian.Uint16(packetData[62:])>>6 ) & 0x003F
-		tghEvent["sequenceNumber"] = (binary.BigEndian.Uint32(packetData[62:])) & 0x003FFFFF
-		tghEvent["nodeId"] = binary.BigEndian.Uint32(packetData[66:])
+		fields["telemetryGroupHeader"] =common.MapStr{
+			"version": packetData[62]>>4,
+			"hw_id": (binary.BigEndian.Uint16(packetData[62:])>>6 ) & 0x003F,
+			"sequenceNumber": (binary.BigEndian.Uint32(packetData[62:])) & 0x003FFFFF,
+			"nodeId": binary.BigEndian.Uint32(packetData[66:]),
+		}
+
+
+		//开始对Individual Report Header进行解释
+		// 0                   1                   2                   3
+		// 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+		//+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+		//|RepType| InType| Report Length |     MD Length |D|Q|F|I| Rsvd  |
+		irhEvent := common.MapStr{}
+		fields["individualReportHeader"] = irhEvent
+
+
+
+
 
 		udpEvent := common.MapStr{}
 		fields["udpRelated"] = udpEvent
