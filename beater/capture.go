@@ -11,7 +11,6 @@ import (
 	"github.com/google/gopacket/pcap"
 	"log"
 	"os"
-	"strconv"
 	"time"
 	//"unicode"
 )
@@ -383,6 +382,7 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 
 		//开始处理每个数据包的时候，要先清空掉上与一个数据包相关的event里的数据。
 		event.Timestamp = time.Now()
+		//event.Fields["counter"] = packetCount
 		fields["counter"] = packetCount
 
 		//开始对telemetry group header的解析
@@ -393,14 +393,6 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 		//+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 		//|                         Node ID                               |
 		//+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-		//tghEvent := common.MapStr{}
-		//fields["telemetryGroupHeader"] = tghEvent
-		//
-		//tghEvent["version"] = packetData[62]>>4
-		////tghEvent["hw_id"] = ((uint16(packetData[63]) | uint16(packetData[62])<<8)>>6 ) & 0x003F
-		//tghEvent["hw_id"] = (binary.BigEndian.Uint16(packetData[62:])>>6 ) & 0x003F
-		//tghEvent["sequenceNumber"] = (binary.BigEndian.Uint32(packetData[62:])) & 0x003FFFFF
-		//tghEvent["nodeId"] = binary.BigEndian.Uint32(packetData[66:])
 
 		fields["telemetryGroupHeader"] =common.MapStr{
 			"version": packetData[62]>>4,
@@ -411,12 +403,43 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 
 
 		//开始对Individual Report Header进行解释
+		//Report Lenght的长度单位是4个字节
 		// 0                   1                   2                   3
 		// 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 		//+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 		//|RepType| InType| Report Length |     MD Length |D|Q|F|I| Rsvd  |
-		irhEvent := common.MapStr{}
-		fields["individualReportHeader"] = irhEvent
+		repType := packetData[70]>>4
+		//reportLength和mdLength的长度单位都是4字节，所以要左移2位才能转换为字节
+		reportLength := uint16(packetData[71]) <<2
+		mdLength := uint16(packetData[72]) <<2
+
+		//When the RepType value is Inner Only, then the Individual Report Main Contents is empty.
+		//MD Length should be set to zero upon transmission, and ignored upon reception.
+		if (repType ==0) && (mdLength!=0) {
+			continue
+		}
+
+		//以太网报头+IPv6报头+UDP报头+TelemetryReportHeader+Individual Report Header +（原始的IPv6报头+… )
+		//= 14+40+8+8+4+（40+…）=74+…
+		//如果reportLength不对，就不予以处理
+		if reportLength+74 != uint16(len(packetData))  {
+			continue
+		}
+
+
+		fields["individualReportHeader"] = common.MapStr{
+			"RepType": repType,
+			"InType": packetData[70] & 0x0F,
+			"ReportLength": reportLength,
+			"MDLength": mdLength,
+		}
+
+		//D=0， Dropped bit
+		//Q=0, Congested Queue Association bit
+		//F=1, Tracked Flow Association bit
+		//I=0, Intermediate Report bit
+
+
 
 
 		udpEvent := common.MapStr{}
@@ -448,7 +471,8 @@ func NodeToString(opCode uint32) string {
 	//陈晓筹：这里其实是根据代码查询实际含义
 	s, exists := NodeForString[opCode]
 	if !exists {
-		return strconv.Itoa(int(opCode))
+		//return strconv.Itoa(uint32(opCode))
+		//return  opCode
 	}
 	return s
 }
