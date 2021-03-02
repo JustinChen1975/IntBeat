@@ -11,6 +11,7 @@ import (
 	"github.com/google/gopacket/pcap"
 	"log"
 	"os"
+	"strconv"
 	"time"
 	//"unicode"
 )
@@ -405,7 +406,7 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 			"version": packetData[62]>>4,
 			"hw_id": (binary.BigEndian.Uint16(packetData[62:])>>6 ) & 0x003F,
 			"sequenceNumber": (binary.BigEndian.Uint32(packetData[62:])) & 0x003FFFFF,
-			"nodeId": binary.BigEndian.Uint32(packetData[66:]),
+			"nodeId": NodeToString(binary.BigEndian.Uint32(packetData[66:])),
 		}
 
 
@@ -416,9 +417,6 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 		//|RepType| InType| Report Length |     MD Length |D|Q|F|I| Rsvd  |
 		irhEvent := common.MapStr{}
 		fields["individualReportHeader"] = irhEvent
-
-
-
 
 
 		udpEvent := common.MapStr{}
@@ -444,6 +442,24 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 		//fmt.Println(packetCount)
 	}
 
+}
+
+func NodeToString(opCode uint32) string {
+	//陈晓筹：这里其实是根据代码查询实际含义
+	s, exists := NodeForString[opCode]
+	if !exists {
+		return strconv.Itoa(int(opCode))
+	}
+	return s
+}
+
+var NodeForString = map[uint32]string{
+	25174435: "R1",
+	25174436: "R2",
+	25174437: "R3",
+	25174438: "R4",
+	25174439: "R5",
+	25174440: "R6",
 }
 
 const (
