@@ -545,18 +545,53 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 		//开始处理INT-MD Metadata Header
 		offset =118
 		intVersion := packetData[offset]>>4
-		hopML := packetData[offset+2] & 0x1F
-		//这个可以用来校验是否正确。不过目前可以先不用。
-		//remainHopCnt := packetData[offset+3]
+		hopML := int(packetData[offset+2] & 0x1F)
+		//这个可以用来校验是否正确。
+		remainHopCnt := packetData[offset+3]
+		//TODO: 64后面要设置为const
+		HopNums := int(64 -remainHopCnt)
 		//hopML :=  (binary.BigEndian.Uint16(packetData[offset+2:])>>8 ) & 0x001F,
 
-		fields["INT MD Metadata Header"] = common.MapStr{
-			"intVersion" : intVersion,
-			"D:Dropped" : packetData[offset]&_L3 != 0,
-			"E:Exceed" : packetData[offset]&_L2 != 0,
-			"M:MTU overflow" : packetData[offset]&_L1 != 0,
-			"hopML" : hopML,
+		intMDmetadataHeader := common.MapStr{}
+		fields["INT MD Metadata Header"] = intMDmetadataHeader
+
+		intMDmetadataHeader["intVersion"] = intVersion
+		intMDmetadataHeader["D:Dropped"] = packetData[offset]&_L3 != 0
+		intMDmetadataHeader["E:Exceed"] = packetData[offset]&_L2 != 0
+		intMDmetadataHeader["M:MTU overflow"] = packetData[offset]&_L1 != 0
+		intMDmetadataHeader["hopML"] = hopML
+
+		//fields["INT MD Metadata Header"] = common.MapStr{
+		//	"intVersion" : intVersion,
+		//	"D:Dropped" : packetData[offset]&_L3 != 0,
+		//	"E:Exceed" : packetData[offset]&_L2 != 0,
+		//	"M:MTU overflow" : packetData[offset]&_L1 != 0,
+		//	"hopML" : hopML,
+		//}
+		offset =122
+		nodeIDFlag := packetData[offset] & _L7 !=0
+		hopLatencyFlag := packetData[offset] & _L5 !=0
+
+		offset =130
+		if nodeIDFlag && hopLatencyFlag {
+			mapStrSlice := make([]common.MapStr, 0, HopNums)
+			for i:=0; i< HopNums ; i++  {
+				mapStr := common.MapStr{}
+				mapStr["nodeID"] = NodeToString(binary.BigEndian.Uint32(packetData[offset+i*hopML:]))
+				//TODO：先假设latency紧跟在nodeID之后
+				mapStr["latency"] =binary.BigEndian.Uint32(packetData[offset+4+i*hopML:])
+				mapStrSlice = append(mapStrSlice, mapStr)
+			}
+			fields["INT metadata"]=mapStrSlice
 		}
+
+		//intMDmetadataHeader["hopML"] = hopML
+
+
+		//nodeID等怎么设置为数组呢？
+		//TODO：要用HOPML来验证instruction bitmap的设置位是否正确。
+
+
 
 		//TODO：要考虑padding的情况；要考虑多个option的情形；要考虑原始IPv6报文中带有hop-by-hop option报文的情形
 
@@ -566,6 +601,29 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 		packetCount++
 	}
 }
+
+//// rrsToMapStr converts an slice of RR's to an slice of MapStr's and optionally
+//// returns a list of the IP addresses found in the resource records.
+//func rrsToMapStrs(records []mkdns.RR, ipList bool) ([]common.MapStr, []string) {
+//	var allIPs []string
+//	mapStrSlice := make([]common.MapStr, 0, len(records))
+//	for _, rr := range records {
+//		rrHeader := rr.Header()
+//
+//		mapStr, ips := rrToMapStr(rr, ipList)
+//		if len(mapStr) == 0 { // OPT pseudo-RR returns an empty MapStr
+//			continue
+//		}
+//		allIPs = append(allIPs, ips...)
+//
+//		mapStr["name"] = trimRightDot(rrHeader.Name)
+//		mapStr["type"] = dnsTypeToString(rrHeader.Rrtype)
+//		mapStr["class"] = dnsClassToString(rrHeader.Class)
+//		mapStr["ttl"] = strconv.FormatInt(int64(rrHeader.Ttl), 10)
+//		mapStrSlice = append(mapStrSlice, mapStr)
+//	}
+//	return mapStrSlice, allIPs
+//}
 
 const (
 	INT_MD = 0x31
