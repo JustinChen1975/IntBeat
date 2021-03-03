@@ -466,6 +466,9 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 				"srcIPv6Addr": net.IP{packetData[74],packetData[75],packetData[76],packetData[77],packetData[78],
 					packetData[79],packetData[80],packetData[81],packetData[82],packetData[83],packetData[84],
 					packetData[85],packetData[86],packetData[87],packetData[88],packetData[89],}.To16().String(),
+				"srcIPv6Addr1": net.IP{packetData[89],packetData[88],packetData[87],packetData[86],packetData[85],
+					packetData[84],packetData[83],packetData[82],packetData[81],packetData[80],packetData[79],
+					packetData[78],packetData[77],packetData[76],packetData[75],packetData[74],}.To16().String(),
 				//"dstIPv6Addr": InnerTypeToString(inType),
 			}
 		}
