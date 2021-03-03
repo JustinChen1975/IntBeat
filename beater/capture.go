@@ -464,9 +464,23 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 		if (repType ==0) && (inType==5) {
 			offset :=74
 			fields["originalIPv6Header"] = common.MapStr{
-				//"srcIPv6Addr": net.IP{packetData[82],packetData[83],packetData[84],packetData[85],packetData[86],
-				//	packetData[87],packetData[88],packetData[89],packetData[90],packetData[91],packetData[92],
-				//	packetData[93],packetData[94],packetData[95],packetData[96],packetData[97],}.To16().String(),
+				//"srcIPv6Addr": net.IP{
+				//	packetData[offset+8],
+				//	packetData[offset+9],
+				//	packetData[offset+10],
+				//	packetData[offset+11],
+				//	packetData[offset+12],
+				//	packetData[offset+13],
+				//	packetData[offset+14],
+				//	packetData[offset+15],
+				//	packetData[offset+16],
+				//	packetData[offset+17],
+				//	packetData[offset+18],
+				//	packetData[offset+19],
+				//	packetData[offset+20],
+				//	packetData[offset+21],
+				//	packetData[offset+22],
+				//	packetData[offset+23],}.To16().String(),
 				"srcIPv6Addr": net.IP{
 					packetData[offset+8],
 					packetData[offset+9],
@@ -483,7 +497,7 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 					packetData[offset+20],
 					packetData[offset+21],
 					packetData[offset+22],
-					packetData[offset+23],}.To16().String(),
+					packetData[offset+23],}.String(),
 				"dstIPv6Addr": net.IP{
 					packetData[offset+24],
 					packetData[offset+25],
