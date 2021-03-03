@@ -519,11 +519,36 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 			continue
 		}
 
+		//开始处理INT option header
+		offset = 116
+		fields["INT type"] =IntTypeToString(packetData[offset])
+		if int(packetData[offset+1]) +2 + offset != packetLen {
+			continue
+		}
+
 
 
 		client.Publish(event)
 		packetCount++
 	}
+}
+
+const (
+	INT_MD = 0x31
+	INT_MX = 0x33
+)
+
+var IntTypeForString = map[uint8]string{
+	INT_MD:                        "INT MD Type",
+	INT_MX:                        "INT MX Type",
+}
+
+func IntTypeToString(intType uint8) string {
+	s, exists := IntTypeForString[intType]
+	if !exists {
+		return strconv.FormatUint(uint64(intType),10)
+	}
+	return s
 }
 
 const (
