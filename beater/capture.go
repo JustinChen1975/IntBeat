@@ -478,7 +478,7 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 		//开始处理原始的IPv6头的信息
 		//从[74]字节开始
 		//TODO：其它的等后面处理。
-		offset :=74
+		offset =74
 		//接下来的应该是hop-by-hop header，如果不是，说明不是INT over IPv6
 		if packetData[80]!=0 {
 			continue
@@ -550,11 +550,12 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 		//remainHopCnt := packetData[offset+3]
 		//hopML :=  (binary.BigEndian.Uint16(packetData[offset+2:])>>8 ) & 0x001F,
 
-		fields["INT_MD Metadata Header"] = common.MapStr{
+		fields["INT MD Metadata Header"] = common.MapStr{
 			"intVersion" : intVersion,
 			"D:Dropped" : packetData[offset]&_L3 != 0,
 			"E:Exceed" : packetData[offset]&_L2 != 0,
 			"M:MTU overflow" : packetData[offset]&_L1 != 0,
+			"hopML" : hopML,
 		}
 
 		//TODO：要考虑padding的情况；要考虑多个option的情形；要考虑原始IPv6报文中带有hop-by-hop option报文的情形
