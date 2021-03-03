@@ -467,43 +467,92 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 		//从[74]字节开始
 		//TODO：其它的等后面处理。
 		offset :=74
-		fields["originalIPv6"] = common.MapStr{
-			"srcIPv6Addr": net.IP{
-				packetData[offset+8],
-				packetData[offset+9],
-				packetData[offset+10],
-				packetData[offset+11],
-				packetData[offset+12],
-				packetData[offset+13],
-				packetData[offset+14],
-				packetData[offset+15],
-				packetData[offset+16],
-				packetData[offset+17],
-				packetData[offset+18],
-				packetData[offset+19],
-				packetData[offset+20],
-				packetData[offset+21],
-				packetData[offset+22],
-				packetData[offset+23],}.String(),
-			"dstIPv6Addr": net.IP{
-				packetData[offset+24],
-				packetData[offset+25],
-				packetData[offset+26],
-				packetData[offset+27],
-				packetData[offset+28],
-				packetData[offset+29],
-				packetData[offset+30],
-				packetData[offset+31],
-				packetData[offset+32],
-				packetData[offset+33],
-				packetData[offset+34],
-				packetData[offset+35],
-				packetData[offset+36],
-				packetData[offset+37],
-				packetData[offset+38],
-				packetData[offset+39],}.String(),
+		//接下来的应该是hop-by-hop header，如果不是，说明不是INT over IPv6
+		if packetData[80]!=0 {
+			continue
 		}
+		originalIPv6Header := common.MapStr{}
+		fields["originalIPv6"] = originalIPv6Header
 
+		originalIPv6Header["srcIPv6Addr"] = net.IP{
+			packetData[offset+8],
+			packetData[offset+9],
+			packetData[offset+10],
+			packetData[offset+11],
+			packetData[offset+12],
+			packetData[offset+13],
+			packetData[offset+14],
+			packetData[offset+15],
+			packetData[offset+16],
+			packetData[offset+17],
+			packetData[offset+18],
+			packetData[offset+19],
+			packetData[offset+20],
+			packetData[offset+21],
+			packetData[offset+22],
+			packetData[offset+23],}.String()
+		originalIPv6Header["dstIPv6Addr"] =net.IP{
+			packetData[offset+24],
+			packetData[offset+25],
+			packetData[offset+26],
+			packetData[offset+27],
+			packetData[offset+28],
+			packetData[offset+29],
+			packetData[offset+30],
+			packetData[offset+31],
+			packetData[offset+32],
+			packetData[offset+33],
+			packetData[offset+34],
+			packetData[offset+35],
+			packetData[offset+36],
+			packetData[offset+37],
+			packetData[offset+38],
+			packetData[offset+39],}.String()
+
+		//fields["originalIPv6"] = common.MapStr{
+		//	"srcIPv6Addr": net.IP{
+		//		packetData[offset+8],
+		//		packetData[offset+9],
+		//		packetData[offset+10],
+		//		packetData[offset+11],
+		//		packetData[offset+12],
+		//		packetData[offset+13],
+		//		packetData[offset+14],
+		//		packetData[offset+15],
+		//		packetData[offset+16],
+		//		packetData[offset+17],
+		//		packetData[offset+18],
+		//		packetData[offset+19],
+		//		packetData[offset+20],
+		//		packetData[offset+21],
+		//		packetData[offset+22],
+		//		packetData[offset+23],}.String(),
+		//	"dstIPv6Addr": net.IP{
+		//		packetData[offset+24],
+		//		packetData[offset+25],
+		//		packetData[offset+26],
+		//		packetData[offset+27],
+		//		packetData[offset+28],
+		//		packetData[offset+29],
+		//		packetData[offset+30],
+		//		packetData[offset+31],
+		//		packetData[offset+32],
+		//		packetData[offset+33],
+		//		packetData[offset+34],
+		//		packetData[offset+35],
+		//		packetData[offset+36],
+		//		packetData[offset+37],
+		//		packetData[offset+38],
+		//		packetData[offset+39],}.String(),
+		//	//58代表是ICMPv6。TODO：需要改动为可读的string
+		//	//这个其实是在读取hop-by-hop header的第一个字节
+		//	"upperLayerProtocol": packetData[offset+40],
+		//}
+
+		//开始处理hop-by-hop header。
+		offset =114
+		//58代表是ICMPv6。TODO：需要改动为可读的string
+		originalIPv6Header["upperLayerProtocol"] =  packetData[offset]
 
 
 		client.Publish(event)
