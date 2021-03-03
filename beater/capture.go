@@ -342,6 +342,18 @@ func packetHandler3(packetDataChannel chan []byte, client beat.Client) {
 				//udpEvent["udpSrcPort"] = uint32(packetData[54:56])
 				//下面的做法是错误的。原本是1234，会变成4,210
 				//udpEvent["udpDstPort"] =  packetData[56:58]
+
+				//这是直接解码
+				//udpEvent["udpSrcPort"] = uint16(packetData[55]) | uint16(packetData[54])<<8
+				//udpEvent["udpSrcPort"] = binary.BigEndian.Uint16(packetData[54:])
+
+				//下面用现成的函数
+				//udpEvent["udpSrcPort"],_,_ =unpackUint16(packetData,54)
+				//udpEvent["udpDstPort"] = binary.BigEndian.Uint16(packetData[56:])
+
+				//udpEvent["udpSrcPort"] = uint32(packetData[54:56])
+				//下面的做法是错误的。原本是1234，会变成4,210
+				//udpEvent["udpDstPort"] =  packetData[56:58]
 			}
 		}
 
@@ -379,6 +391,11 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 		if  !bytes.Equal(packetData[54:58],[]byte{0x0d,0x80,0x04,0xd2})  {
 			//UDP的源端口是3456且目的端口是1234的包才是INT over IPv6上的包
 			continue
+		}else {
+			fields["INT port"] = common.MapStr{
+				"udpSrcPort" : binary.BigEndian.Uint16(packetData[54:]),
+				"udpDstPort" : binary.BigEndian.Uint16(packetData[56:]),
+			}
 		}
 
 		//开始处理每个数据包的时候，要先清空掉上与一个数据包相关的event里的数据。
@@ -433,35 +450,14 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 			"InType": InnerTypeToString(packetData[70] & 0x0F),
 			//"ReportLength": reportLength,
 			//"MDLength": mdLength,
+			"D:Dropped" : packetData[73]&_L7 != 0,
+			"Q:Congested Queue Association" : packetData[73]&_L6 != 0,
+			"F:Tracked Flow Association" : packetData[73]&_L5 != 0,
+			"I:Intermediate Report" : packetData[73]&_L4 != 0,
 		}
 
-		//D=0， Dropped bit
-		//Q=0, Congested Queue Association bit
-		//F=1, Tracked Flow Association bit
-		//I=0, Intermediate Report bit
-
-
-		udpEvent := common.MapStr{}
-		fields["udpRelated"] = udpEvent
-
-		//这是直接解码
-		//udpEvent["udpSrcPort"] = uint16(packetData[55]) | uint16(packetData[54])<<8
-		udpEvent["udpSrcPort"] = binary.BigEndian.Uint16(packetData[54:])
-
-		//下面用现成的函数
-		//udpEvent["udpSrcPort"],_,_ =unpackUint16(packetData,54)
-		udpEvent["udpDstPort"] = binary.BigEndian.Uint16(packetData[56:])
-
-		//udpEvent["udpSrcPort"] = uint32(packetData[54:56])
-		//下面的做法是错误的。原本是1234，会变成4,210
-		//udpEvent["udpDstPort"] =  packetData[56:58]
-
 		client.Publish(event)
-
 		packetCount++
-
-		//packetCount++
-		//fmt.Println(packetCount)
 	}
 
 }
@@ -531,17 +527,10 @@ func NodeToString(opCode uint32) string {
 
 
 const (
-	headerSize = 12
-
-	// Header.Bits
-	_QR = 1 << 15 // query/response (response=1)
-	_AA = 1 << 10 // authoritative
-	_TC = 1 << 9  // truncated
-	_RD = 1 << 8  // recursion desired
-	_RA = 1 << 7  // recursion available
-	_Z  = 1 << 6  // Z
-	_AD = 1 << 5  // authticated data
-	_CD = 1 << 4  // checking disabled
+	_L7 = 1 << 7
+	_L6 = 1 << 6
+	_L5 = 1 << 5
+	_L4 = 1 << 4
 )
 
 // setHdr set the header in the dns using the binary data in dh.
