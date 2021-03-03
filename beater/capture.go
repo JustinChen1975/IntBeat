@@ -550,7 +550,7 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 		//remainHopCnt := packetData[offset+3]
 		//hopML :=  (binary.BigEndian.Uint16(packetData[offset+2:])>>8 ) & 0x001F,
 
-		fields["INT MD Metadata Header"] = common.MapStr{
+		fields["INT_MD Metadata Header"] = common.MapStr{
 			"intVersion" : intVersion,
 			"D:Dropped" : packetData[offset]&_L3 != 0,
 			"E:Exceed" : packetData[offset]&_L2 != 0,
