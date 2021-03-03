@@ -430,7 +430,7 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 		fields["individualReportHeader"] = common.MapStr{
 			//"RepType": repType,
 			"RepType": RepTypeToString(repType),
-			"InType": packetData[70] & 0x0F,
+			"InType": InnerTypeToString(packetData[70] & 0x0F),
 			//"ReportLength": reportLength,
 			//"MDLength": mdLength,
 		}
@@ -464,6 +464,32 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 		//fmt.Println(packetCount)
 	}
 
+}
+
+const (
+	NoneInnertype = iota
+	TlvInnertype
+	DomainspecificextensiondataInnertype
+	EthernetInnertype
+	Ipv4Innertype
+	Ipv6Innertype
+)
+
+var InnerTypeForString = map[uint8]string{
+	NoneInnertype:                        "None",
+	TlvInnertype:                         "TLV",
+	DomainspecificextensiondataInnertype: "DomainSpecificExtensionData",
+	EthernetInnertype:                    "Ethernet",
+	Ipv4Innertype:                        "IPv4",
+	Ipv6Innertype:                        "IPv6",
+}
+
+func InnerTypeToString(innerType uint8) string {
+	s, exists := InnerTypeForString[innerType]
+	if !exists {
+		return strconv.FormatUint(uint64(innerType),10)
+	}
+	return s
 }
 
 const (
