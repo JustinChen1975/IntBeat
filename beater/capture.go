@@ -370,6 +370,13 @@ func packetHandler3(packetDataChannel chan []byte, client beat.Client) {
 
 func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 
+	// Recover from any panics that occur while parsing a packet.
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("panic: %v", r)
+		}
+	}()
+
 	event := beat.Event{
 		Timestamp: time.Now(),
 		Fields: common.MapStr{
@@ -521,11 +528,15 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 
 		//开始处理INT option header
 		offset = 116
+		intType := packetData[offset]
+		//目前只能处理INT_MD
+		if intType != 0x31  {
+			continue
+		}
 		fields["INT type"] =IntTypeToString(packetData[offset])
 		if int(packetData[offset+1]) +2 + offset != packetLen {
 			continue
 		}
-
 
 
 		client.Publish(event)
