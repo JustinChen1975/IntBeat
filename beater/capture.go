@@ -462,14 +462,45 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 		//从[74]字节开始
 		//TODO：其它的等后面处理。
 		if (repType ==0) && (inType==5) {
+			offset :=74
 			fields["originalIPv6Header"] = common.MapStr{
-				"srcIPv6Addr": net.IP{packetData[82],packetData[83],packetData[84],packetData[85],packetData[86],
-					packetData[87],packetData[88],packetData[89],packetData[90],packetData[91],packetData[92],
-					packetData[93],packetData[94],packetData[95],packetData[96],packetData[97],}.To16().String(),
-				"srcIPv6Addr1": net.IP{packetData[89],packetData[88],packetData[87],packetData[86],packetData[85],
-					packetData[84],packetData[83],packetData[82],packetData[81],packetData[80],packetData[79],
-					packetData[78],packetData[77],packetData[76],packetData[75],packetData[74],}.To16().String(),
-				//"dstIPv6Addr": InnerTypeToString(inType),
+				//"srcIPv6Addr": net.IP{packetData[82],packetData[83],packetData[84],packetData[85],packetData[86],
+				//	packetData[87],packetData[88],packetData[89],packetData[90],packetData[91],packetData[92],
+				//	packetData[93],packetData[94],packetData[95],packetData[96],packetData[97],}.To16().String(),
+				"srcIPv6Addr": net.IP{
+					packetData[offset+8],
+					packetData[offset+9],
+					packetData[offset+10],
+					packetData[offset+11],
+					packetData[offset+12],
+					packetData[offset+13],
+					packetData[offset+14],
+					packetData[offset+15],
+					packetData[offset+16],
+					packetData[offset+17],
+					packetData[offset+18],
+					packetData[offset+19],
+					packetData[offset+20],
+					packetData[offset+21],
+					packetData[offset+22],
+					packetData[offset+23],}.To16().String(),
+				"dstIPv6Addr": net.IP{
+					packetData[offset+24],
+					packetData[offset+25],
+					packetData[offset+26],
+					packetData[offset+27],
+					packetData[offset+28],
+					packetData[offset+29],
+					packetData[offset+30],
+					packetData[offset+31],
+					packetData[offset+32],
+					packetData[offset+33],
+					packetData[offset+34],
+					packetData[offset+35],
+					packetData[offset+36],
+					packetData[offset+37],
+					packetData[offset+38],
+					packetData[offset+39],}.To16().String(),
 			}
 		}
 
