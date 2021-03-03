@@ -406,6 +406,8 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 			}
 		}
 
+		offset :=0
+
 		packetLen := len(packetData)
 
 		//开始处理每个数据包的时候，要先清空掉上与一个数据包相关的event里的数据。
@@ -436,11 +438,12 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 		// 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 		//+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 		//|RepType| InType| Report Length |     MD Length |D|Q|F|I| Rsvd  |
-		repType := packetData[70]>>4
+		offset =70
+		repType := packetData[offset]>>4
 		//reportLength和mdLength的长度单位都是4字节，所以要左移2位才能转换为字节
-		reportLength := uint16(packetData[71]) <<2
-		inType := packetData[70] & 0x0F
-		mdLength := uint16(packetData[72]) <<2
+		reportLength := uint16(packetData[offset+1]) <<2
+		inType := packetData[offset] & 0x0F
+		mdLength := uint16(packetData[offset+2]) <<2
 
 		//目前只对Inner Only类型以及IPv6封装的进行处理
 		if (repType !=0) || (inType!=5) {
@@ -533,10 +536,29 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 		if intType != 0x31  {
 			continue
 		}
-		fields["INT type"] =IntTypeToString(packetData[offset])
+
+		fields["INT type"] =IntTypeToString(intType)
 		if int(packetData[offset+1]) +2 + offset != packetLen {
 			continue
 		}
+
+		//开始处理INT-MD Metadata Header
+		offset =118
+		intVersion := packetData[offset]>>4
+		hopML := packetData[offset+2] & 0x1F
+		//这个可以用来校验是否正确。不过目前可以先不用。
+		//remainHopCnt := packetData[offset+3]
+		//hopML :=  (binary.BigEndian.Uint16(packetData[offset+2:])>>8 ) & 0x001F,
+
+		fields["INT MD Metadata Header"] = common.MapStr{
+			"intVersion" : intVersion,
+			"D:Dropped" : packetData[offset]&_L3 != 0,
+			"E:Exceed" : packetData[offset]&_L2 != 0,
+			"M:MTU overflow" : packetData[offset]&_L1 != 0,
+		}
+
+		//TODO：要考虑padding的情况；要考虑多个option的情形；要考虑原始IPv6报文中带有hop-by-hop option报文的情形
+
 
 
 		client.Publish(event)
@@ -627,10 +649,14 @@ func NodeToString(opCode uint32) string {
 
 
 const (
-	_L7 = 1 << 7
-	_L6 = 1 << 6
-	_L5 = 1 << 5
-	_L4 = 1 << 4
+	_L0 = 1 << iota
+	_L1
+	_L2
+	_L3
+	_L4
+	_L5
+	_L6
+	_L7
 )
 
 // setHdr set the header in the dns using the binary data in dh.
