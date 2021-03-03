@@ -10,6 +10,7 @@ import (
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
 	"log"
+	"net"
 	"os"
 	"strconv"
 	"time"
@@ -429,6 +430,7 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 		repType := packetData[70]>>4
 		//reportLength和mdLength的长度单位都是4字节，所以要左移2位才能转换为字节
 		reportLength := uint16(packetData[71]) <<2
+		inType := packetData[70] & 0x0F
 		mdLength := uint16(packetData[72]) <<2
 
 		//When the RepType value is Inner Only, then the Individual Report Main Contents is empty.
@@ -447,7 +449,7 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 		fields["individualReportHeader"] = common.MapStr{
 			//"RepType": repType,
 			"RepType": RepTypeToString(repType),
-			"InType": InnerTypeToString(packetData[70] & 0x0F),
+			"InType": InnerTypeToString(inType),
 			//"ReportLength": reportLength,
 			//"MDLength": mdLength,
 			"D:Dropped" : packetData[73]&_L7 != 0,
@@ -456,10 +458,21 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 			"I:Intermediate Report" : packetData[73]&_L4 != 0,
 		}
 
+		//目前只对Inner Only类型以及IPv6封装的进行处理
+		//从[74]字节开始
+		//TODO：其它的等后面处理。
+		if (repType ==0) && (inType==5) {
+			fields["originalIPv6Header"] = common.MapStr{
+				"srcIPv6Addr": net.IP{packetData[74],packetData[75],packetData[76],packetData[77],packetData[78],
+					packetData[79],packetData[80],packetData[81],packetData[82],packetData[83],packetData[84],
+					packetData[85]}.To16(),
+				//"dstIPv6Addr": InnerTypeToString(inType),
+			}
+		}
+
 		client.Publish(event)
 		packetCount++
 	}
-
 }
 
 const (
