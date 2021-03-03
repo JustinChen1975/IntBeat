@@ -433,6 +433,11 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 		inType := packetData[70] & 0x0F
 		mdLength := uint16(packetData[72]) <<2
 
+		//目前只对Inner Only类型以及IPv6封装的进行处理
+		if (repType !=0) || (inType!=5) {
+			continue
+		}
+
 		//When the RepType value is Inner Only, then the Individual Report Main Contents is empty.
 		//MD Length should be set to zero upon transmission, and ignored upon reception.
 		if (repType ==0) && (mdLength!=0) {
@@ -458,65 +463,48 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 			"I:Intermediate Report" : packetData[73]&_L4 != 0,
 		}
 
-		//目前只对Inner Only类型以及IPv6封装的进行处理
+		//开始处理原始的IPv6头的信息
 		//从[74]字节开始
 		//TODO：其它的等后面处理。
-		if (repType ==0) && (inType==5) {
-			offset :=74
-			fields["originalIPv6Header"] = common.MapStr{
-				//"srcIPv6Addr": net.IP{
-				//	packetData[offset+8],
-				//	packetData[offset+9],
-				//	packetData[offset+10],
-				//	packetData[offset+11],
-				//	packetData[offset+12],
-				//	packetData[offset+13],
-				//	packetData[offset+14],
-				//	packetData[offset+15],
-				//	packetData[offset+16],
-				//	packetData[offset+17],
-				//	packetData[offset+18],
-				//	packetData[offset+19],
-				//	packetData[offset+20],
-				//	packetData[offset+21],
-				//	packetData[offset+22],
-				//	packetData[offset+23],}.To16().String(),
-				"srcIPv6Addr": net.IP{
-					packetData[offset+8],
-					packetData[offset+9],
-					packetData[offset+10],
-					packetData[offset+11],
-					packetData[offset+12],
-					packetData[offset+13],
-					packetData[offset+14],
-					packetData[offset+15],
-					packetData[offset+16],
-					packetData[offset+17],
-					packetData[offset+18],
-					packetData[offset+19],
-					packetData[offset+20],
-					packetData[offset+21],
-					packetData[offset+22],
-					packetData[offset+23],}.String(),
-				"dstIPv6Addr": net.IP{
-					packetData[offset+24],
-					packetData[offset+25],
-					packetData[offset+26],
-					packetData[offset+27],
-					packetData[offset+28],
-					packetData[offset+29],
-					packetData[offset+30],
-					packetData[offset+31],
-					packetData[offset+32],
-					packetData[offset+33],
-					packetData[offset+34],
-					packetData[offset+35],
-					packetData[offset+36],
-					packetData[offset+37],
-					packetData[offset+38],
-					packetData[offset+39],}.To16().String(),
-			}
+		offset :=74
+		fields["originalIPv6"] = common.MapStr{
+			"srcIPv6Addr": net.IP{
+				packetData[offset+8],
+				packetData[offset+9],
+				packetData[offset+10],
+				packetData[offset+11],
+				packetData[offset+12],
+				packetData[offset+13],
+				packetData[offset+14],
+				packetData[offset+15],
+				packetData[offset+16],
+				packetData[offset+17],
+				packetData[offset+18],
+				packetData[offset+19],
+				packetData[offset+20],
+				packetData[offset+21],
+				packetData[offset+22],
+				packetData[offset+23],}.String(),
+			"dstIPv6Addr": net.IP{
+				packetData[offset+24],
+				packetData[offset+25],
+				packetData[offset+26],
+				packetData[offset+27],
+				packetData[offset+28],
+				packetData[offset+29],
+				packetData[offset+30],
+				packetData[offset+31],
+				packetData[offset+32],
+				packetData[offset+33],
+				packetData[offset+34],
+				packetData[offset+35],
+				packetData[offset+36],
+				packetData[offset+37],
+				packetData[offset+38],
+				packetData[offset+39],}.String(),
 		}
+
+
 
 		client.Publish(event)
 		packetCount++
