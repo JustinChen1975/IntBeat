@@ -545,7 +545,7 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 		//开始处理INT-MD Metadata Header
 		offset =118
 		intVersion := packetData[offset]>>4
-		hopML := int(packetData[offset+2] & 0x1F)
+		hopML := int(packetData[offset+2] & 0x1F)*4
 		//这个可以用来校验是否正确。
 		remainHopCnt := packetData[offset+3]
 		//TODO: 64后面要设置为const
