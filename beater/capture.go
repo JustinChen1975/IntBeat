@@ -399,6 +399,8 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 			}
 		}
 
+		packetLen := len(packetData)
+
 		//开始处理每个数据包的时候，要先清空掉上与一个数据包相关的event里的数据。
 		event.Timestamp = time.Now()
 		//event.Fields["counter"] = packetCount
@@ -447,7 +449,7 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 		//以太网报头+IPv6报头+UDP报头+TelemetryReportHeader+Individual Report Header +（原始的IPv6报头+… )
 		//= 14+40+8+8+4+（40+…）=74+…
 		//如果reportLength不对，就不予以处理
-		if reportLength+74 != uint16(len(packetData))  {
+		if reportLength+74 != uint16(packetLen)  {
 			continue
 		}
 
@@ -509,50 +511,14 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 			packetData[offset+38],
 			packetData[offset+39],}.String()
 
-		//fields["originalIPv6"] = common.MapStr{
-		//	"srcIPv6Addr": net.IP{
-		//		packetData[offset+8],
-		//		packetData[offset+9],
-		//		packetData[offset+10],
-		//		packetData[offset+11],
-		//		packetData[offset+12],
-		//		packetData[offset+13],
-		//		packetData[offset+14],
-		//		packetData[offset+15],
-		//		packetData[offset+16],
-		//		packetData[offset+17],
-		//		packetData[offset+18],
-		//		packetData[offset+19],
-		//		packetData[offset+20],
-		//		packetData[offset+21],
-		//		packetData[offset+22],
-		//		packetData[offset+23],}.String(),
-		//	"dstIPv6Addr": net.IP{
-		//		packetData[offset+24],
-		//		packetData[offset+25],
-		//		packetData[offset+26],
-		//		packetData[offset+27],
-		//		packetData[offset+28],
-		//		packetData[offset+29],
-		//		packetData[offset+30],
-		//		packetData[offset+31],
-		//		packetData[offset+32],
-		//		packetData[offset+33],
-		//		packetData[offset+34],
-		//		packetData[offset+35],
-		//		packetData[offset+36],
-		//		packetData[offset+37],
-		//		packetData[offset+38],
-		//		packetData[offset+39],}.String(),
-		//	//58代表是ICMPv6。TODO：需要改动为可读的string
-		//	//这个其实是在读取hop-by-hop header的第一个字节
-		//	"upperLayerProtocol": packetData[offset+40],
-		//}
-
 		//开始处理hop-by-hop header。
 		offset =114
 		//58代表是ICMPv6。TODO：需要改动为可读的string
 		originalIPv6Header["upperLayerProtocol"] =  packetData[offset]
+		if int(packetData[offset+1]+1)*8 + offset != packetLen {
+			continue
+		}
+
 
 
 		client.Publish(event)
