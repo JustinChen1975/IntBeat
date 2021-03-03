@@ -465,7 +465,7 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 			fields["originalIPv6Header"] = common.MapStr{
 				"srcIPv6Addr": net.IP{packetData[74],packetData[75],packetData[76],packetData[77],packetData[78],
 					packetData[79],packetData[80],packetData[81],packetData[82],packetData[83],packetData[84],
-					packetData[85]}.To16(),
+					packetData[85],packetData[86],packetData[87],packetData[88],packetData[89],}.To16().String(),
 				//"dstIPv6Addr": InnerTypeToString(inType),
 			}
 		}
