@@ -463,9 +463,9 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 		//TODO：其它的等后面处理。
 		if (repType ==0) && (inType==5) {
 			fields["originalIPv6Header"] = common.MapStr{
-				"srcIPv6Addr": net.IP{packetData[74],packetData[75],packetData[76],packetData[77],packetData[78],
-					packetData[79],packetData[80],packetData[81],packetData[82],packetData[83],packetData[84],
-					packetData[85],packetData[86],packetData[87],packetData[88],packetData[89],}.To16().String(),
+				"srcIPv6Addr": net.IP{packetData[82],packetData[83],packetData[84],packetData[85],packetData[86],
+					packetData[87],packetData[88],packetData[89],packetData[90],packetData[91],packetData[92],
+					packetData[93],packetData[94],packetData[95],packetData[96],packetData[97],}.To16().String(),
 				"srcIPv6Addr1": net.IP{packetData[89],packetData[88],packetData[87],packetData[86],packetData[85],
 					packetData[84],packetData[83],packetData[82],packetData[81],packetData[80],packetData[79],
 					packetData[78],packetData[77],packetData[76],packetData[75],packetData[74],}.To16().String(),
