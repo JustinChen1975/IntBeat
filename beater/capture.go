@@ -600,6 +600,9 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 
 				intMDmetadataOfNode := common.MapStr{}
 				fields[nodeID] = intMDmetadataOfNode
+				//var pathStartTimeStamp uint64  = 0
+				var pathEndTimeStamp uint64  = 0
+
 				//要求必须有nodeID在，不然不知道这些INT Metadata是从哪个节点上来的。
 				if levelOneInfIDFlag  {
 					//上一个字段数据占据了4个字节，因此roffset偏移4个字节
@@ -626,13 +629,23 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 				}
 				if ingressTimeStampFlag  {
 					roffset =roffset +4
-					mapStr["ingressTimeStamp"] = binary.BigEndian.Uint64(packetData[offset+roffset+i*hopML:])
+					timestamp := binary.BigEndian.Uint64(packetData[offset+roffset+i*hopML:])
+					//mapStr["ingressTimeStamp"] = binary.BigEndian.Uint64(packetData[offset+roffset+i*hopML:])
+					mapStr["ingressTimeStamp"] = timestamp
 					intMDmetadataOfNode["ingressTimeStamp"] = mapStr["ingressTimeStamp"]
+					//路径中的第一个节点的数据在最底层
+					if i==HopNums-1  && egressTimeStampFlag {
+						fields["path Latency"] = pathEndTimeStamp - timestamp
+					}
 				}
 				if egressTimeStampFlag  {
 					roffset =roffset +8
-					mapStr["egressTimeStamp"] = binary.BigEndian.Uint64(packetData[offset+roffset+i*hopML:])
+					timestamp := binary.BigEndian.Uint64(packetData[offset+roffset+i*hopML:])
+						mapStr["egressTimeStamp"] = timestamp
 					intMDmetadataOfNode["egressTimeStamp"] = mapStr["egressTimeStamp"]
+					if i==0 {
+						pathEndTimeStamp = timestamp
+					}
 				}
 				if levelTwoInfIDFlag  {
 					roffset =roffset +8
