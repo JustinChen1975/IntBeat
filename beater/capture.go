@@ -537,8 +537,11 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 		}
 
 		fields["INT type"] = IntTypeToString(intType)
+		//这是对INT option里的长度进行判断。
 		if int(packetData[offset+1])+2+offset != packetLen {
-			fmt.Println("int(packetData[offset+1])+2+offset != packetLen")
+			//fmt.Println("int(packetData[offset+1])+2+offset != packetLen")
+			fmt.Println("int(packetData[offset+1])+2+offset != packetLen % %",int(packetData[offset+1]),packetLen)
+			//fmt.Println("int(packetData[offset+1])+2+offset != packetLen")
 			continue
 		}
 
