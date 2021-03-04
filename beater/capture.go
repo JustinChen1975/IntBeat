@@ -396,17 +396,17 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 			//next header=17是UDP包。不是的话，说明不是UDP的数据包
 			continue
 		}
-		if  !bytes.Equal(packetData[54:58],[]byte{0x0d,0x80,0x04,0xd2})  {
+		if !bytes.Equal(packetData[54:58], []byte{0x0d, 0x80, 0x04, 0xd2}) {
 			//UDP的源端口是3456且目的端口是1234的包才是INT over IPv6上的包
 			continue
-		}else {
+		} else {
 			fields["INT port"] = common.MapStr{
-				"udpSrcPort" : binary.BigEndian.Uint16(packetData[54:]),
-				"udpDstPort" : binary.BigEndian.Uint16(packetData[56:]),
+				"udpSrcPort": binary.BigEndian.Uint16(packetData[54:]),
+				"udpDstPort": binary.BigEndian.Uint16(packetData[56:]),
 			}
 		}
 
-		offset :=0
+		offset := 0
 
 		packetLen := len(packetData)
 
@@ -424,13 +424,12 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 		//|                         Node ID                               |
 		//+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
-		fields["telemetryGroupHeader"] =common.MapStr{
-			"version": packetData[62]>>4,
-			"hw_id": (binary.BigEndian.Uint16(packetData[62:])>>6 ) & 0x003F,
+		fields["telemetryGroupHeader"] = common.MapStr{
+			"version":        packetData[62] >> 4,
+			"hw_id":          (binary.BigEndian.Uint16(packetData[62:]) >> 6) & 0x003F,
 			"sequenceNumber": (binary.BigEndian.Uint32(packetData[62:])) & 0x003FFFFF,
-			"nodeId": NodeToString(binary.BigEndian.Uint32(packetData[66:])),
+			"nodeId":         NodeToString(binary.BigEndian.Uint32(packetData[66:])),
 		}
-
 
 		//开始对Individual Report Header进行解释
 		//Report Lenght的长度单位是4个字节
@@ -438,49 +437,49 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 		// 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 		//+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 		//|RepType| InType| Report Length |     MD Length |D|Q|F|I| Rsvd  |
-		offset =70
-		repType := packetData[offset]>>4
+		offset = 70
+		repType := packetData[offset] >> 4
 		//reportLength和mdLength的长度单位都是4字节，所以要左移2位才能转换为字节
-		reportLength := uint16(packetData[offset+1]) <<2
+		reportLength := uint16(packetData[offset+1]) << 2
 		inType := packetData[offset] & 0x0F
-		mdLength := uint16(packetData[offset+2]) <<2
+		mdLength := uint16(packetData[offset+2]) << 2
 
 		//目前只对Inner Only类型以及IPv6封装的进行处理
-		if (repType !=0) || (inType!=5) {
+		if (repType != 0) || (inType != 5) {
 			continue
 		}
 
 		//When the RepType value is Inner Only, then the Individual Report Main Contents is empty.
 		//MD Length should be set to zero upon transmission, and ignored upon reception.
-		if (repType ==0) && (mdLength!=0) {
+		if (repType == 0) && (mdLength != 0) {
 			continue
 		}
 
 		//以太网报头+IPv6报头+UDP报头+TelemetryReportHeader+Individual Report Header +（原始的IPv6报头+… )
 		//= 14+40+8+8+4+（40+…）=74+…
 		//如果reportLength不对，就不予以处理
-		if reportLength+74 != uint16(packetLen)  {
+		if reportLength+74 != uint16(packetLen) {
 			continue
 		}
 
 		fields["individualReportHeader"] = common.MapStr{
 			//"RepType": repType,
 			"RepType": RepTypeToString(repType),
-			"InType": InnerTypeToString(inType),
+			"InType":  InnerTypeToString(inType),
 			//"ReportLength": reportLength,
 			//"MDLength": mdLength,
-			"D:Dropped" : packetData[73]&_L7 != 0,
-			"Q:Congested Queue Association" : packetData[73]&_L6 != 0,
-			"F:Tracked Flow Association" : packetData[73]&_L5 != 0,
-			"I:Intermediate Report" : packetData[73]&_L4 != 0,
+			"D:Dropped":                     packetData[73]&_L7 != 0,
+			"Q:Congested Queue Association": packetData[73]&_L6 != 0,
+			"F:Tracked Flow Association":    packetData[73]&_L5 != 0,
+			"I:Intermediate Report":         packetData[73]&_L4 != 0,
 		}
 
 		//开始处理原始的IPv6头的信息
 		//从[74]字节开始
 		//TODO：其它的等后面处理。
-		offset =74
+		offset = 74
 		//接下来的应该是hop-by-hop header，如果不是，说明不是INT over IPv6
-		if packetData[80]!=0 {
+		if packetData[80] != 0 {
 			continue
 		}
 		originalIPv6Header := common.MapStr{}
@@ -503,7 +502,7 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 			packetData[offset+21],
 			packetData[offset+22],
 			packetData[offset+23],}.String()
-		originalIPv6Header["dstIPv6Addr"] =net.IP{
+		originalIPv6Header["dstIPv6Addr"] = net.IP{
 			packetData[offset+24],
 			packetData[offset+25],
 			packetData[offset+26],
@@ -522,10 +521,10 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 			packetData[offset+39],}.String()
 
 		//开始处理hop-by-hop header。
-		offset =114
+		offset = 114
 		//58代表是ICMPv6。TODO：需要改动为可读的string
-		originalIPv6Header["upperLayerProtocol"] =  packetData[offset]
-		if int(packetData[offset+1]+1)*8 + offset != packetLen {
+		originalIPv6Header["upperLayerProtocol"] = packetData[offset]
+		if int(packetData[offset+1]+1)*8+offset != packetLen {
 			continue
 		}
 
@@ -533,23 +532,23 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 		offset = 116
 		intType := packetData[offset]
 		//目前只能处理INT_MD
-		if intType != 0x31  {
+		if intType != 0x31 {
 			continue
 		}
 
-		fields["INT type"] =IntTypeToString(intType)
-		if int(packetData[offset+1]) +2 + offset != packetLen {
+		fields["INT type"] = IntTypeToString(intType)
+		if int(packetData[offset+1])+2+offset != packetLen {
 			continue
 		}
 
 		//开始处理INT-MD Metadata Header
-		offset =118
-		intVersion := packetData[offset]>>4
-		hopML := int(packetData[offset+2] & 0x1F)*4
+		offset = 118
+		intVersion := packetData[offset] >> 4
+		hopML := int(packetData[offset+2]&0x1F) * 4
 		//这个可以用来校验是否正确。
 		remainHopCnt := packetData[offset+3]
 		//TODO: 64后面要设置为const
-		HopNums := int(64 -remainHopCnt)
+		HopNums := int(64 - remainHopCnt)
 		//hopML :=  (binary.BigEndian.Uint16(packetData[offset+2:])>>8 ) & 0x001F,
 
 		intMDmetadataHeader := common.MapStr{}
@@ -568,34 +567,61 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 		//	"M:MTU overflow" : packetData[offset]&_L1 != 0,
 		//	"hopML" : hopML,
 		//}
-		offset =122
-		nodeIDFlag := packetData[offset] & _L7 !=0
-		hopLatencyFlag := packetData[offset] & _L5 !=0
+		offset = 122
+		//TODO：目前只支持前面8位。bitmap总共16位。
+		nodeIDFlag := packetData[offset]&_L7 != 0
+		levelOneInfIDFlag := packetData[offset]&_L6 != 0
+		hopLatencyFlag := packetData[offset]&_L5 != 0
+		//queueIDqOccupancyFlag := packetData[offset]&_L4 != 0
+		//ingressTimeStampFlag := packetData[offset]&_L3 != 0
+		//egressTimeStampFlag := packetData[offset]&_L2 != 0
+		//egressIntTXutilizationFlag := packetData[offset]&_L1 != 0
+		//bufferIDboccupancyFlag := packetData[offset]&_L0 != 0
+		//
+		//hopLatencyFlag := packetData[offset]&_L0 != 0
 
-		offset =130
-		if nodeIDFlag && hopLatencyFlag {
-			mapStrSlice := make([]common.MapStr, 0, HopNums)
-			for i:=0; i< HopNums ; i++  {
-				mapStr := common.MapStr{}
-				mapStr["nodeID"] = NodeToString(binary.BigEndian.Uint32(packetData[offset+i*hopML:]))
-				//TODO：先假设latency紧跟在nodeID之后
-				mapStr["latency"] =binary.BigEndian.Uint32(packetData[offset+4+i*hopML:])
-				mapStrSlice = append(mapStrSlice, mapStr)
+		offset = 130
+		mapStrSlice := make([]common.MapStr, 0, HopNums)
+		fields["INT metadata"] = mapStrSlice
+		for i := 0; i < HopNums; i++ {
+			//每个Hop的metadata有多个字段组成，有的字段存在，有的不存在。因此这些字段的偏移位置不固定，需要根据bitmap进行计算。
+			roffset := 0
+			mapStr := common.MapStr{}
+			if nodeIDFlag {
+				roffset =roffset +0
+				mapStr["nodeID"] = NodeToString(binary.BigEndian.Uint32(packetData[offset+roffset+i*hopML:]))
 			}
-			fields["INT metadata"]=mapStrSlice
+			if levelOneInfIDFlag  {
+				roffset =roffset +4
+				mapStr["levelOneIngressInfID"] = binary.BigEndian.Uint16(packetData[offset+roffset+i*hopML:])
+				mapStr["levelOneEgressInfID"] = binary.BigEndian.Uint16(packetData[offset+roffset+2+i*hopML:])
+			}
+			if hopLatencyFlag {
+				roffset =roffset +4
+				mapStr["latency"] = binary.BigEndian.Uint32(packetData[offset+roffset+i*hopML:])
+			}
+			mapStrSlice = append(mapStrSlice, mapStr)
 		}
 
-		//intMDmetadataHeader["hopML"] = hopML
+		//if nodeIDFlag && hopLatencyFlag {
+		//	roffset :=0
+		//	mapStrSlice := make([]common.MapStr, 0, HopNums)
+		//	for i:=0; i< HopNums ; i++  {
+		//		mapStr := common.MapStr{}
+		//		mapStr["nodeID"] = NodeToString(binary.BigEndian.Uint32(packetData[offset+i*hopML:]))
+		//		//TODO：先假设latency紧跟在nodeID之后
+		//		mapStr["latency"] =binary.BigEndian.Uint32(packetData[offset+4+i*hopML:])
+		//		mapStrSlice = append(mapStrSlice, mapStr)
+		//	}
+		//	fields["INT metadata"]=mapStrSlice
+		//}
 
+		//intMDmetadataHeader["hopML"] = hopML
 
 		//nodeID等怎么设置为数组呢？
 		//TODO：要用HOPML来验证instruction bitmap的设置位是否正确。
 
-
-
 		//TODO：要考虑padding的情况；要考虑多个option的情形；要考虑原始IPv6报文中带有hop-by-hop option报文的情形
-
-
 
 		client.Publish(event)
 		packetCount++
@@ -631,14 +657,14 @@ const (
 )
 
 var IntTypeForString = map[uint8]string{
-	INT_MD:                        "INT MD Type",
-	INT_MX:                        "INT MX Type",
+	INT_MD: "INT MD Type",
+	INT_MX: "INT MX Type",
 }
 
 func IntTypeToString(intType uint8) string {
 	s, exists := IntTypeForString[intType]
 	if !exists {
-		return strconv.FormatUint(uint64(intType),10)
+		return strconv.FormatUint(uint64(intType), 10)
 	}
 	return s
 }
@@ -664,27 +690,27 @@ var InnerTypeForString = map[uint8]string{
 func InnerTypeToString(innerType uint8) string {
 	s, exists := InnerTypeForString[innerType]
 	if !exists {
-		return strconv.FormatUint(uint64(innerType),10)
+		return strconv.FormatUint(uint64(innerType), 10)
 	}
 	return s
 }
 
 const (
-	InnerOnly_RepType = iota     //InnerOnly_RepType=0
+	InnerOnly_RepType = iota //InnerOnly_RepType=0
 	INT_RepType
 	IOAM_RepType
 )
 
 var RepTypeForString = map[uint8]string{
 	InnerOnly_RepType: "Inner Only",
-	INT_RepType: "INT",
-	IOAM_RepType: "IOAM",
+	INT_RepType:       "INT",
+	IOAM_RepType:      "IOAM",
 }
 
 func RepTypeToString(repType uint8) string {
 	s, exists := RepTypeForString[repType]
 	if !exists {
-		return strconv.FormatUint(uint64(repType),10)
+		return strconv.FormatUint(uint64(repType), 10)
 	}
 	return s
 }
@@ -701,11 +727,10 @@ var NodeForString = map[uint32]string{
 func NodeToString(opCode uint32) string {
 	s, exists := NodeForString[opCode]
 	if !exists {
-		return strconv.FormatUint(uint64(opCode),10)
+		return strconv.FormatUint(uint64(opCode), 10)
 	}
 	return s
 }
-
 
 const (
 	_L0 = 1 << iota
