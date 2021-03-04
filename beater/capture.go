@@ -590,7 +590,7 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 		offset = 130
 		mapStrSlice := make([]common.MapStr, 0, HopNums)
 		pathSlice := make([]string, 0, HopNums)
-		//TODO:要确保后面的字节数足够读取。目前只有nodeID和latency得到测试。其它的还没有用真实数据流进行过测试。
+		//TODO:目前只有nodeID和latency得到测试。其它的还没有用真实数据流进行过测试。
 
 		for i := 0; i < HopNums; i++ {
 			//每个Hop的metadata有多个字段组成，有的字段存在，有的不存在。因此这些字段的偏移位置不固定，需要根据bitmap进行计算。
@@ -607,6 +607,9 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 				intMDmetadataOfNode := common.MapStr{}
 				fields[nodeID] = intMDmetadataOfNode
 				//var pathStartTimeStamp uint64  = 0
+
+				//由于各节点的timestamp是独立的。直接用最后一个节点的egressTimeStamp减去第一个节点的ingressTimeStamp不太合理。
+				//TODO：但是为什么timestamp刚好是反过来的呢？
 				var pathEndTimeStamp uint64  = 0
 
 				//要求必须有nodeID在，不然不知道这些INT Metadata是从哪个节点上来的。
@@ -626,7 +629,7 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 				if queueIDqOccupancyFlag  {
 					roffset =roffset +4
 					moffset := offset+roffset+i*hopML
-					mapStr["queueID"] =packetData[moffset:]
+					mapStr["queueID"] =packetData[moffset]
 					moffset++
 					//queueOccupancy占用24位。但是下面用32位来表示。
 					mapStr["queueOccupancy"] = binary.BigEndian.Uint32(packetData[moffset:])>>8
@@ -668,10 +671,11 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 						packetData[offset+roffset+i*hopML:])
 					intMDmetadataOfNode["egressIntTXutilization"] = mapStr["egressIntTXutilization"]
 				}
+				//TODO：当前的P4程序里不对buffer进行处理吗？
 				if bufferIDbOccupancyFlag  {
 					roffset =roffset +4
 					moffset := offset+roffset+i*hopML
-					mapStr["bufferID"] =packetData[moffset:]
+					mapStr["bufferID"] =packetData[moffset]
 					intMDmetadataOfNode["bufferID"] = mapStr["bufferID"]
 					moffset++
 					//bufferOccupancy占用24位。但是下面用32位来表示。
