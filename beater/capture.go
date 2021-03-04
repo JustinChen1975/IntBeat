@@ -549,7 +549,7 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 		remainHopCnt := packetData[offset+3]
 		//TODO: 64后面要设置为const
 		HopNums := int(64 - remainHopCnt)
-		if offset+HopNums*hopML!=packetLen {
+		if offset+HopNums*hopML>packetLen {
 			continue
 		}
 		//hopML :=  (binary.BigEndian.Uint16(packetData[offset+2:])>>8 ) & 0x001F,
