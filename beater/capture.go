@@ -583,7 +583,7 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 
 		offset = 130
 		mapStrSlice := make([]common.MapStr, 0, HopNums)
-		pathSlice := make([]interface{}, 0, HopNums)
+		pathSlice := make([]string, 0, HopNums)
 		//TODO:要确保后面的字节数足够读取。目前只有nodeID和latency得到测试。其它的还没有用真实数据流进行过测试。
 
 		for i := 0; i < HopNums; i++ {
@@ -595,7 +595,8 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 				nodeID := NodeToString(binary.BigEndian.Uint32(packetData[offset+roffset+i*hopML:]))
 				mapStr["nodeID"] = nodeID
 
-				pathSlice =append(pathSlice,nodeID)
+				//pathSlice... =append(pathSlice,nodeID)
+				pathSlice =append([]string{nodeID}, pathSlice...)
 
 				intMDmetadataOfNode := common.MapStr{}
 				fields[nodeID] = intMDmetadataOfNode
