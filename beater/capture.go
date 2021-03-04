@@ -538,6 +538,7 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 
 		fields["INT type"] = IntTypeToString(intType)
 		if int(packetData[offset+1])+2+offset != packetLen {
+			fmt.Println("int(packetData[offset+1])+2+offset != packetLen")
 			continue
 		}
 
@@ -550,6 +551,7 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 		//TODO: 64后面要设置为const
 		HopNums := int(64 - remainHopCnt)
 		if offset+HopNums*hopML>packetLen {
+			fmt.Println("offset+HopNums*hopML>packetLen")
 			continue
 		}
 		//hopML :=  (binary.BigEndian.Uint16(packetData[offset+2:])>>8 ) & 0x001F,
@@ -665,6 +667,7 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 					intMDmetadataOfNode["levelTwoIngressInfID"] = mapStr["levelTwoIngressInfID"]
 					intMDmetadataOfNode["levelTwoEgressInfID"] = mapStr["levelTwoEgressInfID"]
 				}
+				//TODO：当前P4程序里是把TX utilization固定为0
 				if egressIntTXutilizationFlag  {
 					roffset =roffset +8
 					mapStr["egressIntTXutilization"] = binary.BigEndian.Uint32(
