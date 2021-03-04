@@ -583,9 +583,9 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 		//进入下一个字节读取bitmap
 		bufferIDbOccupancyFlag := packetData[offset+1]&_L0 != 0
 
-		intMDmetadataHeader["Domain Specific ID"] = packetData[offset+2:]
-		intMDmetadataHeader["DS Instructions"] = packetData[offset+4:]
-		intMDmetadataHeader["DS Flags"] = packetData[offset+6:]
+		intMDmetadataHeader["Domain Specific ID"] =binary.BigEndian.Uint16(packetData[offset+2:])
+		intMDmetadataHeader["DS Instructions"] =binary.BigEndian.Uint16(packetData[offset+4:])
+		intMDmetadataHeader["DS Flags"] = binary.BigEndian.Uint16(packetData[offset+6:])
 
 		offset = 130
 		mapStrSlice := make([]common.MapStr, 0, HopNums)
