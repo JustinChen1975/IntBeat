@@ -582,7 +582,6 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 
 		offset = 130
 		mapStrSlice := make([]common.MapStr, 0, HopNums)
-		fields["INT metadata"] = mapStrSlice
 		for i := 0; i < HopNums; i++ {
 			//每个Hop的metadata有多个字段组成，有的字段存在，有的不存在。因此这些字段的偏移位置不固定，需要根据bitmap进行计算。
 			roffset := 0
@@ -602,6 +601,7 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 			}
 			mapStrSlice = append(mapStrSlice, mapStr)
 		}
+		fields["INT metadata"] = mapStrSlice
 
 		//if nodeIDFlag && hopLatencyFlag {
 		//	roffset :=0
