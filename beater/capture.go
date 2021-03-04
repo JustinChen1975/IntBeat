@@ -583,7 +583,9 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 
 		offset = 130
 		mapStrSlice := make([]common.MapStr, 0, HopNums)
+		pathSlice := make([]interface{}, 0, HopNums)
 		//TODO:要确保后面的字节数足够读取。目前只有nodeID和latency得到测试。其它的还没有用真实数据流进行过测试。
+
 		for i := 0; i < HopNums; i++ {
 			//每个Hop的metadata有多个字段组成，有的字段存在，有的不存在。因此这些字段的偏移位置不固定，需要根据bitmap进行计算。
 			roffset := 0
@@ -592,7 +594,8 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 				roffset =roffset +0
 				nodeID := NodeToString(binary.BigEndian.Uint32(packetData[offset+roffset+i*hopML:]))
 				mapStr["nodeID"] = nodeID
-				//mapStr["nodeID"] = NodeToString(binary.BigEndian.Uint32(packetData[offset+roffset+i*hopML:]))
+
+				pathSlice =append(pathSlice,nodeID)
 
 				intMDmetadataOfNode := common.MapStr{}
 				fields[nodeID] = intMDmetadataOfNode
@@ -618,14 +621,17 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 					//queueOccupancy占用24位。但是下面用32位来表示。
 					mapStr["queueOccupancy"] = binary.BigEndian.Uint32(packetData[moffset:])>>8
 					//mapStr["queueOccupancy"] = uint32(moffset+2]) | uint32(moffset+1])<<8 | uint32(moffset)<<16
+					intMDmetadataOfNode["queueOccupancy"] =mapStr["queueOccupancy"]
 				}
 				if ingressTimeStampFlag  {
 					roffset =roffset +4
 					mapStr["ingressTimeStamp"] = binary.BigEndian.Uint64(packetData[offset+roffset+i*hopML:])
+					intMDmetadataOfNode["ingressTimeStamp"] = mapStr["ingressTimeStamp"]
 				}
 				if egressTimeStampFlag  {
 					roffset =roffset +8
 					mapStr["egressTimeStamp"] = binary.BigEndian.Uint64(packetData[offset+roffset+i*hopML:])
+					intMDmetadataOfNode["egressTimeStamp"] = mapStr["egressTimeStamp"]
 				}
 				if levelTwoInfIDFlag  {
 					roffset =roffset +8
@@ -633,26 +639,32 @@ func decodeAndPublish(packetDataChannel chan []byte, client beat.Client) {
 						packetData[offset+roffset+i*hopML:])
 					mapStr["levelTwoEgressInfID"] = binary.BigEndian.Uint32(
 						packetData[offset+roffset+4+i*hopML:])
+					intMDmetadataOfNode["levelTwoIngressInfID"] = mapStr["levelTwoIngressInfID"]
+					intMDmetadataOfNode["levelTwoEgressInfID"] = mapStr["levelTwoEgressInfID"]
 				}
 				if egressIntTXutilizationFlag  {
 					roffset =roffset +8
 					mapStr["egressIntTXutilization"] = binary.BigEndian.Uint32(
 						packetData[offset+roffset+i*hopML:])
+					intMDmetadataOfNode["egressIntTXutilization"] = mapStr["egressIntTXutilization"]
 				}
 				if bufferIDbOccupancyFlag  {
 					roffset =roffset +4
 					moffset := offset+roffset+i*hopML
 					mapStr["bufferID"] =packetData[moffset:]
+					intMDmetadataOfNode["bufferID"] = mapStr["bufferID"]
 					moffset++
 					//bufferOccupancy占用24位。但是下面用32位来表示。
 					mapStr["bufferOccupancy"] = binary.BigEndian.Uint32(packetData[moffset:])>>8
 					//mapStr["bufferOccupancy"] = uint32(moffset+2]) | uint32(moffset+1])<<8 | uint32(moffset)<<16
+					intMDmetadataOfNode["bufferOccupancy"] = mapStr["bufferOccupancy"]
 				}
 			}
 
 			mapStrSlice = append(mapStrSlice, mapStr)
 		}
 		fields["INT metadata"] = mapStrSlice
+		fields["INT path"] = pathSlice
 
 		//intMDmetadataHeader["hopML"] = hopML
 
